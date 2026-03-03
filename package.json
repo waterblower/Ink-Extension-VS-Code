@@ -6,7 +6,7 @@
   "publisher": "water2077",
   "icon": "inky-icon.png",
   "engines": {
-    "vscode": "^1.75.0"
+    "vscode": "*"
   },
   "repository": {
     "url": "https://github.com/waterblower/Ink-Extension-VS-Code"
@@ -15,9 +15,6 @@
     "Programming Languages"
   ],
   "main": "./extension.js",
-  "activationEvents": [
-    "onLanguage:ink"
-  ],
   "contributes": {
     "languages": [
       {
