@@ -1,72 +1,46 @@
-# Ink Language — VSCode Extension
+# Ink Language Support for VS Code
 
-Syntax highlighting for [inkle's Ink](https://www.inklestudios.com/ink/) scripting language (`.ink` files).
+A powerful, feature-rich Visual Studio Code extension for [Inkle's Ink](https://www.inklestudios.com/ink/) narrative scripting language. 
 
-## Features
+Whether you are writing a short interactive story or a massive, multi-file branching narrative game, this extension provides the essential IDE features you need: rich syntax highlighting, intelligent auto-completion, cross-file navigation, and inline image previews.
 
-- **Knots & Stitches** — `=== knot_name ===` and `= stitch_name` are highlighted as named sections
-- **Choices** — `*` (once-only) and `+` (sticky) choice bullets
-- **Gathers** — `-` gather lines
-- **Diverts** — `->` and the special targets `END` / `DONE`
-- **Variables** — `VAR`, `CONST`, `temp` declarations with assignment highlighting
-- **Lists** — `LIST` declarations and `ListName.item` references
-- **Tilde statements** — `~` logic lines (assignments, function calls)
-- **Tags** — `# key: value` metadata lines
-- **Inline logic** — `{ }` blocks including conditionals, cycles, sequences, and alternatives (`|`)
-- **Comments** — `//` line comments and `/* */` block comments
-- **Keywords** — `INCLUDE`, `true`, `false`, `and`, `or`, `not`, `else`
-- **Operators** — arithmetic, comparison, assignment, compound assignment
-- **Function calls** — any `identifier(` pattern
-- **String literals** — `"quoted strings"`
-- **Numeric literals** — integers and decimals
+## ✨ Features
 
-## Installation (manual / development)
+### 🎨 Comprehensive Syntax Highlighting
+Enjoy a beautifully colorized coding experience. The included TextMate grammar accurately highlights all of Ink's unique syntax, including:
+* Knots (`===`) and Stitches (`=`)
+* Choices (`*`, `+`) and Gathers (`-`)
+* Diverts (`->`, `<-`)
+* Variables, Constants, Lists, and Temp declarations
+* Inline logic, conditionals, and mathematical expressions
+* Tags and Includes
 
-1. Copy the `ink-ext-vscode` folder into your VSCode extensions directory:
+### 🚀 Intelligent Auto-Completion
+Never lose track of your narrative threads. When typing a divert (`->`), the extension automatically suggests available **Knots** and **Stitches** across your entire project. It seamlessly reads your `INCLUDE` statements to understand your file structure.
 
-   | Platform | Path |
-   |----------|------|
-   | Windows  | `%USERPROFILE%\.vscode\extensions\` |
-   | macOS    | `~/.vscode/extensions/` |
-   | Linux    | `~/.vscode/extensions/` |
+### 🔍 Code Navigation (Go to Definition & Find References)
+Navigate complex branching stories with ease:
+* **Go to Definition (`F12`)**: `Ctrl/Cmd + Click` on a divert or variable to instantly jump to where it was declared.
+* **Find References (`Shift + F12`)**: See every place a specific Knot, Stitch, or Variable is used throughout your workspace.
 
-2. Restart (or reload) VSCode.
+### 🖼️ Inline Image Previews & Links
+Working with visual novels or multimedia projects? This extension adds special support for Image tags:
+* **Format:** Use the standard tag format `# Image: filename.png` (or `#image: ...`).
+* **Hover Previews:** Hover over the tag to see a live markdown preview of the image directly in your editor.
+* **Document Links:** `Ctrl/Cmd + Click` the filename to open the source image file. The extension automatically searches your workspace and sibling directories to find the correct asset.
 
-3. Open any `.ink` file — syntax highlighting will be applied automatically.
+### 📋 Document Outline (Symbol Provider)
+Keep a bird's-eye view of your story files. Open the VS Code **Outline** view (or use Breadcrumbs) to see a structured list of all Knots, Stitches, and global Variables in your current file, allowing you to jump between scenes instantly.
 
-### Quick-install via symlink (recommended for development)
+### 💡 Rich Hover Information
+Need a quick reminder of what a Knot does or what a Variable's initial value is? Hover over any divert or variable reference to see a snippet of its original declaration—without having to switch files.
 
-```sh
-# Windows (run as Administrator or in a Developer shell)
-mklink /D "%USERPROFILE%\.vscode\extensions\ink-lang" "C:\path\to\ink-ext-vscode"
+### 🔗 Deep Multi-File Support
+Your story isn't limited to one file, and neither is this extension. It recursively parses `INCLUDE` directives to map out your entire narrative network, ensuring that auto-complete, definitions, and references work flawlessly across your entire project.
 
-# macOS / Linux
-ln -s /path/to/ink-ext-vscode ~/.vscode/extensions/ink-lang
-```
+## 🛠️ Usage
 
-## Ink Language Quick Reference
+Simply open any `.ink` file in Visual Studio Code. The extension will automatically activate and provide syntax highlighting. 
 
-| Syntax | Meaning |
-|--------|---------|
-| `=== knot_name ===` | Knot declaration |
-| `= stitch_name` | Stitch declaration |
-| `* choice text` | Once-only choice |
-| `+ sticky choice` | Sticky (repeatable) choice |
-| `- ` | Gather point |
-| `-> knot_name` | Divert |
-| `-> END` / `-> DONE` | End of story / thread |
-| `VAR x = 0` | Global variable |
-| `CONST c = 42` | Constant |
-| `temp t = 0` | Temporary variable |
-| `LIST l = a, (b), c` | List type (parentheses = default) |
-| `~ x += 1` | Logic / code statement |
-| `{ x > 0: yes \| no }` | Inline conditional |
-| `INCLUDE file.ink` | Include another file |
-| `# tag: value` | Tag metadata |
-| `// comment` | Line comment |
-| `/* comment */` | Block comment |
-
-## Contributing
-
-The grammar lives in `syntaxes/ink.tmLanguage.json` as a standard TextMate grammar.
-Edit that file and reload VSCode (`Developer: Reload Window`) to iterate.
+* **To trigger auto-complete:** Type `-> ` and start typing a knot name, or press `Ctrl+Space`.
+* **To preview images:** Ensure your images are somewhere in your workspace folder, and write an image tag like `# Image: hero_portrait.jpg`.
