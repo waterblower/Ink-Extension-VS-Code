@@ -9,27 +9,12 @@ const fs = require("fs");
 // Image tag helpers
 // ---------------------------------------------------------------------------
 
-/**
- * Parses a `# image: filename` tag from a line.
- * Returns the filename string, or null if not present.
- * @param {string} line
- * @returns {string | null}
- */
 const parseImageTag = (line) => {
   const m = line.match(/^[ \t]*#[ \t]*[Ii]mage[ \t]*:[ \t]*(.+?)[ \t]*$/);
   return m ? m[1].trim() : null;
 };
 
-/**
- * Given a bare image filename, searches common locations relative to the
- * workspace roots and the ink file's own directory tree for a matching file.
- * Returns the absolute path if found, or null.
- * @param {string} filename
- * @param {string} inkFilePath
- * @returns {string | null}
- */
 const resolveImagePath = (filename, inkFilePath) => {
-  // Candidate search roots: workspace folders first, then the ink file's directory
   const searchRoots = [];
 
   const workspaceFolders = vscode.workspace.workspaceFolders;
@@ -40,7 +25,6 @@ const resolveImagePath = (filename, inkFilePath) => {
   }
   searchRoots.push(path.dirname(inkFilePath));
 
-  // For each root, walk all subdirectories looking for the filename
   for (const root of searchRoots) {
     const found = findFileRecursive(root, filename);
     if (found) return found;
@@ -48,13 +32,6 @@ const resolveImagePath = (filename, inkFilePath) => {
   return null;
 };
 
-/**
- * Recursively searches a directory for a file with the given basename.
- * Returns the first match's absolute path, or null.
- * @param {string} dir
- * @param {string} filename
- * @returns {string | null}
- */
 const findFileRecursive = (dir, filename) => {
   let entries;
   try {
@@ -76,13 +53,6 @@ const findFileRecursive = (dir, filename) => {
   return null;
 };
 
-/**
- * Given a line of text and a position (column), returns the range covering
- * the image filename if the position is within it, else null.
- * @param {string} lineText
- * @param {number} col
- * @returns {{ filename: string; startCol: number; endCol: number } | null}
- */
 const getImageTagAtColumn = (lineText, col) => {
   const m = lineText.match(/^([ \t]*#[ \t]*[Ii]mage[ \t]*:[ \t]*)(.+?)[ \t]*$/);
   if (!m) return null;
@@ -98,10 +68,6 @@ const getImageTagAtColumn = (lineText, col) => {
 // Pure parsing helpers
 // ---------------------------------------------------------------------------
 
-/**
- * @param {string} line
- * @returns {string | null} knot or stitch name declared on this line
- */
 const parseDeclaredName = (line) => {
   const knot = line.match(/^={2,}\s*([a-zA-Z_]\w*)\s*(={2,})?\s*$/);
   if (knot) return knot[1];
@@ -112,10 +78,6 @@ const parseDeclaredName = (line) => {
   return null;
 };
 
-/**
- * @param {string} line
- * @returns {{ name: string; col: number }[]} every divert target on this line
- */
 const parseDivertTargets = (line) => {
   const results = [];
   const commentIdx = line.indexOf("//");
@@ -154,7 +116,7 @@ const collectInkFiles = (rootPath) => {
   const visited = new Set();
   const queue = [rootPath];
   while (queue.length > 0) {
-    const current = /** @type {string} */ (queue.shift());
+    const current = queue.shift();
     if (visited.has(current)) continue;
     visited.add(current);
     for (const inc of directIncludes(current)) {
@@ -202,9 +164,6 @@ const findReferences = (name, files) => {
   return locations;
 };
 
-/**
- * Searches for the definition of a variable. Prioritizes VAR/LIST, falls back to first ~ assignment.
- */
 const findVarDeclaration = (name, files) => {
   let assignmentLoc = null;
   const varRegex = new RegExp(`^\\s*(?:VAR|LIST)\\s+${name}\\b`);
@@ -234,9 +193,6 @@ const findVarDeclaration = (name, files) => {
   return assignmentLoc;
 };
 
-/**
- * Finds all occurrences of a variable, filtering exclusively for logic contexts.
- */
 const findVarOccurrences = (name, files) => {
   const locations = [];
   const re = new RegExp(`\\b${name}\\b`, "g");
@@ -278,11 +234,6 @@ const findVarOccurrences = (name, files) => {
   return locations;
 };
 
-/**
- * @param {vscode.TextDocument} document
- * @param {vscode.Position} position
- * @returns {{type: 'divert' | 'declaration' | 'variable', name: string} | null}
- */
 const getContextInfoAtPosition = (document, position) => {
   const wordRange = document.getWordRangeAtPosition(position, /[a-zA-Z_]\w*/);
   if (!wordRange) return null;
@@ -294,13 +245,11 @@ const getContextInfoAtPosition = (document, position) => {
   const commentIdx = lineText.indexOf("//");
   if (commentIdx !== -1 && col >= commentIdx) return null;
 
-  // 1. Knot/Stitch Declaration
   const declName = parseDeclaredName(lineText);
   if (declName === word) {
     return { type: "declaration", name: word };
   }
 
-  // 2. Divert Target
   const targets = parseDivertTargets(lineText);
   for (const t of targets) {
     if (col >= t.col && col <= t.col + t.name.length) {
@@ -308,7 +257,6 @@ const getContextInfoAtPosition = (document, position) => {
     }
   }
 
-  // 3. Variable (Must be in an Ink logic context)
   let isLogic = false;
   if (/^\s*(?:VAR|LIST)\s/.test(lineText)) {
     isLogic = true;
@@ -326,15 +274,7 @@ const getContextInfoAtPosition = (document, position) => {
 
   if (isLogic) {
     const keywords = [
-      "temp",
-      "true",
-      "false",
-      "and",
-      "or",
-      "not",
-      "return",
-      "else",
-      "if",
+      "temp", "true", "false", "and", "or", "not", "return", "else", "if",
     ];
     if (!keywords.includes(word)) {
       return { type: "variable", name: word };
@@ -345,6 +285,64 @@ const getContextInfoAtPosition = (document, position) => {
 };
 
 const siblingFiles = (docPath) => collectInkFiles(docPath);
+
+// ---------------------------------------------------------------------------
+// Auto-Complete (Completion Item Provider)
+// ---------------------------------------------------------------------------
+
+/** @type {vscode.CompletionItemProvider} */
+const completionProvider = {
+  provideCompletionItems(document, position) {
+    const linePrefix = document.lineAt(position).text.substr(0, position.character);
+    
+    // Only trigger if we are typing a divert: "->" followed by optional spaces, words, or dots
+    if (!linePrefix.match(/->\s*[a-zA-Z0-9_.]*$/)) {
+      return undefined;
+    }
+
+    const files = siblingFiles(document.fileName);
+    const targets = [];
+    let currentKnot = null;
+
+    for (const filePath of files) {
+      const lines = readLines(filePath);
+      const fileName = path.basename(filePath);
+
+      for (let i = 0; i < lines.length; i++) {
+        const raw = lines[i];
+        const trimmed = raw.trim();
+
+        const knotMatch = trimmed.match(/^={2,}\s*([a-zA-Z_]\w*)\s*(={2,})?\s*$/);
+        if (knotMatch) {
+          currentKnot = knotMatch[1];
+          const item = new vscode.CompletionItem(currentKnot, vscode.CompletionItemKind.Function);
+          item.detail = `Knot (${fileName})`;
+          targets.push(item);
+          continue;
+        }
+
+        const stitchMatch = trimmed.match(/^=(?!=)\s*([a-zA-Z_]\w*)\s*$/);
+        if (stitchMatch) {
+          const stitchName = stitchMatch[1];
+          
+          // Add just the stitch name (useful if diverting locally)
+          const item = new vscode.CompletionItem(stitchName, vscode.CompletionItemKind.Module);
+          item.detail = `Stitch (${fileName})`;
+          targets.push(item);
+
+          // Add the absolute knot.stitch name (useful if diverting globally)
+          if (currentKnot) {
+            const absoluteItem = new vscode.CompletionItem(`${currentKnot}.${stitchName}`, vscode.CompletionItemKind.Module);
+            absoluteItem.detail = `Stitch in ${currentKnot} (${fileName})`;
+            targets.push(absoluteItem);
+          }
+        }
+      }
+    }
+
+    return targets;
+  }
+};
 
 // ---------------------------------------------------------------------------
 // Providers
@@ -389,7 +387,6 @@ const definitionProvider = {
 
       if (onDeclaration) {
         const refs = findVarOccurrences(info.name, files);
-        // Deduplicate so the declaration doesn't appear twice in Peek UI
         for (const r of refs) {
           if (
             r.uri.fsPath === declLoc.uri.fsPath &&
@@ -440,7 +437,6 @@ const symbolProvider = {
       const raw = document.lineAt(i).text;
       const trimmed = raw.trim();
 
-      // Add Global Variables to outline
       const varMatch = trimmed.match(/^(?:VAR|LIST)\s+([a-zA-Z_]\w*)/);
       if (varMatch) {
         const name = varMatch[1];
@@ -468,7 +464,7 @@ const symbolProvider = {
         currentKnot = new vscode.DocumentSymbol(
           name,
           "knot",
-          vscode.SymbolKind.Function,
+          vscode.SymbolKind.Namespace,
           range,
           selRange,
         );
@@ -485,7 +481,7 @@ const symbolProvider = {
         const sym = new vscode.DocumentSymbol(
           name,
           "stitch",
-          vscode.SymbolKind.Module,
+          vscode.SymbolKind.Package,
           range,
           selRange,
         );
@@ -501,17 +497,12 @@ const symbolProvider = {
   },
 };
 
-// ---------------------------------------------------------------------------
-// Hover
-// ---------------------------------------------------------------------------
-
 /** @type {vscode.HoverProvider} */
 const hoverProvider = {
   provideHover(document, position) {
     const lineText = document.lineAt(position.line).text;
     const col = position.character;
 
-    // --- Image tag hover: show inline image preview ---
     const imageTag = getImageTagAtColumn(lineText, col);
     if (imageTag) {
       const absPath = resolveImagePath(imageTag.filename, document.fileName);
@@ -524,7 +515,7 @@ const hoverProvider = {
       if (absPath) {
         const uri = vscode.Uri.file(absPath);
         const md = new vscode.MarkdownString(
-          `![${imageTag.filename}](${uri.toString()}|width=240)`,
+          `![${imageTag.filename}](${uri.toString()}|height=300)`,
         );
         md.isTrusted = true;
         return new vscode.Hover(md, hoverRange);
@@ -537,7 +528,6 @@ const hoverProvider = {
       }
     }
 
-    // --- Existing knot/variable hover ---
     const info = getContextInfoAtPosition(document, position);
     if (!info || info.type === "declaration") return null;
 
@@ -567,10 +557,6 @@ const hoverProvider = {
     );
   },
 };
-
-// ---------------------------------------------------------------------------
-// Image tag document link provider (Ctrl-hover underline + click to open)
-// ---------------------------------------------------------------------------
 
 /** @type {vscode.DocumentLinkProvider} */
 const imageLinkProvider = {
@@ -612,6 +598,9 @@ const activate = (context) => {
     vscode.languages.registerReferenceProvider(INK, referenceProvider),
     vscode.languages.registerDocumentSymbolProvider(INK, symbolProvider),
     vscode.languages.registerHoverProvider(INK, hoverProvider),
+    
+    // The CompletionProvider triggers on '>', ' ', and '.'
+    vscode.languages.registerCompletionItemProvider(INK, completionProvider, ">", " ", ".")
   );
 };
 
