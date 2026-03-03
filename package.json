@@ -2,7 +2,7 @@
   "name": "ink-lang",
   "displayName": "Ink Language",
   "description": "Syntax highlighting for inkle's Ink scripting language (.ink files)",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "publisher": "fmv-game",
   "engines": {
     "vscode": "^1.75.0"
@@ -10,12 +10,21 @@
   "categories": [
     "Programming Languages"
   ],
+  "main": "./extension.js",
+  "activationEvents": [
+    "onLanguage:ink"
+  ],
   "contributes": {
     "languages": [
       {
         "id": "ink",
-        "aliases": ["Ink", "ink"],
-        "extensions": [".ink"],
+        "aliases": [
+          "Ink",
+          "ink"
+        ],
+        "extensions": [
+          ".ink"
+        ],
         "configuration": "./language-configuration.json"
       }
     ],
