@@ -634,6 +634,53 @@ const imageLinkProvider = {
 };
 
 // ---------------------------------------------------------------------------
+// CJK highlight suppression
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns true if the character at the given position is a CJK character.
+ * VS Code's default word-highlight treats a whole run of CJK text as one
+ * "word" (because CJK has no spaces), which causes the entire line of
+ * dialogue to light up. Returning an empty array overrides that behaviour.
+ */
+const CJK_RE =
+    /[\u1100-\u11FF\u2E80-\u2EFF\u2F00-\u2FDF\u2FF0-\u2FFF\u3000-\u9FFF\uA000-\uA48F\uA490-\uA4CF\uAC00-\uD7AF\uF900-\uFAFF\uFE10-\uFE1F\uFE30-\uFE4F\uFF00-\uFFEF]/;
+
+const documentHighlightProvider = {
+    provideDocumentHighlights(document, position) {
+        const line = document.lineAt(position.line).text;
+        const ch = line[position.character] ?? "";
+        // If the cursor is on a CJK character, suppress all highlights.
+        if (CJK_RE.test(ch)) return [];
+
+        // For ASCII identifiers we produce highlights ourselves so the
+        // built-in engine never gets a chance to over-select.
+        const wordRange = document.getWordRangeAtPosition(
+            position,
+            /[a-zA-Z_]\w*/,
+        );
+        if (!wordRange) return [];
+
+        const word = document.getText(wordRange);
+        const highlights = [];
+        for (let i = 0; i < document.lineCount; i++) {
+            const text = document.lineAt(i).text;
+            const re = new RegExp(`\\b${word}\\b`, "g");
+            let m;
+            while ((m = re.exec(text)) !== null) {
+                highlights.push(
+                    new vscode.DocumentHighlight(
+                        new vscode.Range(i, m.index, i, m.index + word.length),
+                        vscode.DocumentHighlightKind.Text,
+                    ),
+                );
+            }
+        }
+        return highlights;
+    },
+};
+
+// ---------------------------------------------------------------------------
 // Activation
 // ---------------------------------------------------------------------------
 
@@ -650,6 +697,10 @@ const activate = (context) => {
         vscode.languages.registerDocumentSymbolProvider(INK, symbolProvider),
         vscode.languages.registerHoverProvider(INK, hoverProvider),
         // The CompletionProvider triggers on '>', ' ', and '.'
+        vscode.languages.registerDocumentHighlightProvider(
+            INK,
+            documentHighlightProvider,
+        ),
         vscode.languages.registerCompletionItemProvider(
             INK,
             completionProvider,
