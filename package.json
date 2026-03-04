@@ -1,40 +1,55 @@
 {
-  "name": "ink-lang",
-  "displayName": "Ink Language",
-  "description": "Syntax highlighting for inkle's Ink scripting language (.ink files)",
-  "version": "0.2.0",
-  "publisher": "water2077",
-  "icon": "inky-icon.png",
-  "engines": {
-    "vscode": "^1.0.0"
-  },
-  "repository": {
-    "url": "https://github.com/waterblower/Ink-Extension-VS-Code"
-  },
-  "categories": [
-    "Programming Languages"
-  ],
-  "main": "./extension.js",
-  "contributes": {
-    "languages": [
-      {
-        "id": "ink",
-        "aliases": [
-          "Ink",
-          "ink"
-        ],
-        "extensions": [
-          ".ink"
-        ],
-        "configuration": "./language-configuration.json"
-      }
+    "name": "ink-lang",
+    "displayName": "Ink Language",
+    "description": "Syntax highlighting for inkle's Ink scripting language (.ink files)",
+    "version": "0.2.0",
+    "publisher": "water2077",
+    "icon": "inky-icon.png",
+    "engines": {
+        "vscode": "^1.0.0"
+    },
+    "repository": {
+        "url": "https://github.com/waterblower/Ink-Extension-VS-Code"
+    },
+    "categories": [
+        "Programming Languages"
     ],
-    "grammars": [
-      {
-        "language": "ink",
-        "scopeName": "source.ink",
-        "path": "./syntaxes/ink.tmLanguage.json"
-      }
-    ]
-  }
+    "main": "./extension.js",
+    "contributes": {
+        "languages": [
+            {
+                "id": "ink",
+                "aliases": [
+                    "Ink",
+                    "ink"
+                ],
+                "extensions": [
+                    ".ink"
+                ],
+                "configuration": "./language-configuration.json"
+            }
+        ],
+        "grammars": [
+            {
+                "language": "ink",
+                "scopeName": "source.ink",
+                "path": "./syntaxes/ink.tmLanguage.json"
+            }
+        ],
+        "commands": [
+            {
+                "command": "ink.generateAudio",
+                "title": "Generate Audio"
+            }
+        ],
+        "menus": {
+            "editor/context": [
+                {
+                    "command": "ink.generateAudio",
+                    "when": "editorHasSelection && resourceLangId == ink",
+                    "group": "ink@1"
+                }
+            ]
+        }
+    }
 }
