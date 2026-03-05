@@ -470,6 +470,72 @@ const referenceProvider = {
     },
 };
 
+// ---------------------------------------------------------------------------
+// Folding ranges – knots (=== / ==) and stitches (=)
+// ---------------------------------------------------------------------------
+
+/** @type {vscode.FoldingRangeProvider} */
+const foldingProvider = {
+    provideFoldingRanges(document) {
+        const ranges = [];
+
+        // Collect the start line and kind of every knot / stitch header
+        const headers = [];
+        for (let i = 0; i < document.lineCount; i++) {
+            const trimmed = document.lineAt(i).text.trim();
+
+            // Knot: === name === or == name ==
+            if (/^={2,}\s*[a-zA-Z_]\w*\s*(={2,})?\s*$/.test(trimmed)) {
+                headers.push({ line: i, kind: "knot" });
+                continue;
+            }
+
+            // Stitch: = name  (single leading =, not ==)
+            if (/^=(?!=)\s*[a-zA-Z_]\w*\s*$/.test(trimmed)) {
+                headers.push({ line: i, kind: "stitch" });
+            }
+        }
+
+        // For each header the fold ends just before the next header at the
+        // same or higher level (knot closes at the next knot; stitch closes
+        // at the next stitch OR the next knot).
+        for (let i = 0; i < headers.length; i++) {
+            const start = headers[i].line;
+            let end = document.lineCount - 1;
+
+            for (let j = i + 1; j < headers.length; j++) {
+                const next = headers[j];
+                if (
+                    headers[i].kind === "stitch"
+                        ? true // any following header closes a stitch
+                        : next.kind === "knot" // only a knot closes another knot
+                ) {
+                    end = next.line - 1;
+                    break;
+                }
+            }
+
+            // Trim trailing blank lines from the fold end
+            while (end > start && document.lineAt(end).text.trim() === "") {
+                end--;
+            }
+
+            // Only emit the range when it spans at least one extra line
+            if (end > start) {
+                ranges.push(
+                    new vscode.FoldingRange(
+                        start,
+                        end,
+                        vscode.FoldingRangeKind.Region,
+                    ),
+                );
+            }
+        }
+
+        return ranges;
+    },
+};
+
 /** @type {vscode.DocumentSymbolProvider} */
 const symbolProvider = {
     provideDocumentSymbols(document) {
@@ -687,14 +753,34 @@ const documentHighlightProvider = {
 /**
  * @param {vscode.ExtensionContext} context
  */
+const ensureWorkspaceConfig = () => {
+    const folders = vscode.workspace.workspaceFolders;
+    if (!folders || folders.length === 0) return;
+
+    const workspaceRoot = folders[0].uri.fsPath;
+    const configDir = path.join(workspaceRoot, ".ink-lang");
+    const configFile = path.join(configDir, "config.json");
+
+    if (!fs.existsSync(configDir)) {
+        fs.mkdirSync(configDir, { recursive: true });
+    }
+
+    if (!fs.existsSync(configFile)) {
+        fs.writeFileSync(configFile, "{}", "utf8");
+    }
+};
+
 const activate = (context) => {
     const INK = { language: "ink" };
+
+    ensureWorkspaceConfig();
 
     context.subscriptions.push(
         vscode.languages.registerDefinitionProvider(INK, definitionProvider),
         vscode.languages.registerDocumentLinkProvider(INK, imageLinkProvider),
         vscode.languages.registerReferenceProvider(INK, referenceProvider),
         vscode.languages.registerDocumentSymbolProvider(INK, symbolProvider),
+        vscode.languages.registerFoldingRangeProvider(INK, foldingProvider),
         vscode.languages.registerHoverProvider(INK, hoverProvider),
         // The CompletionProvider triggers on '>', ' ', and '.'
         vscode.languages.registerDocumentHighlightProvider(
