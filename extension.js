@@ -115,6 +115,40 @@ const directIncludes = (filePath) => {
         .filter(fs.existsSync);
 };
 
+/**
+ * Find the root ink file in the same directory — the one not INCLUDEd by any
+ * other .ink file in that directory. Falls back to `docPath` if none found.
+ */
+const findRootInkFile = (docPath) => {
+    const dir = path.dirname(docPath);
+    let siblings;
+    try {
+        siblings = fs.readdirSync(dir)
+            .filter((f) => f.endsWith(".ink"))
+            .map((f) => path.join(dir, f))
+            .filter(fs.existsSync);
+    } catch {
+        return docPath;
+    }
+
+    // Build a set of all files that are INCLUDEd by someone
+    const included = new Set();
+    for (const f of siblings) {
+        for (const inc of directIncludes(f)) {
+            included.add(inc);
+        }
+    }
+
+    // The root is a sibling that nobody includes
+    const roots = siblings.filter((f) => !included.has(f));
+
+    // Prefer the root that transitively includes docPath; otherwise first root
+    for (const root of roots) {
+        if (collectInkFiles(root).has(docPath)) return root;
+    }
+    return roots[0] || docPath;
+};
+
 const collectInkFiles = (rootPath) => {
     const visited = new Set();
     const queue = [rootPath];
@@ -150,12 +184,22 @@ const findReferences = (name, files) => {
         const lines = readLines(filePath);
         for (let i = 0; i < lines.length; i++) {
             for (const target of parseDivertTargets(lines[i])) {
-                if (target.name === name) {
+                // Match exact name OR dotted suffix (e.g. "knot.stitch" matches "stitch")
+                const exactMatch = target.name === name;
+                const dottedMatch = !exactMatch &&
+                    target.name.endsWith("." + name);
+
+                if (exactMatch || dottedMatch) {
+                    // For dotted matches the highlighted span starts after the last dot
+                    const offsetInTarget = dottedMatch
+                        ? target.name.lastIndexOf("." + name) + 1
+                        : 0;
+                    const col = target.col + offsetInTarget;
                     const range = new vscode.Range(
                         i,
-                        target.col,
+                        col,
                         i,
-                        target.col + name.length,
+                        col + name.length,
                     );
                     locations.push(
                         new vscode.Location(vscode.Uri.file(filePath), range),
@@ -309,7 +353,7 @@ const getContextInfoAtPosition = (document, position) => {
     return null;
 };
 
-const siblingFiles = (docPath) => collectInkFiles(docPath);
+const siblingFiles = (docPath) => collectInkFiles(findRootInkFile(docPath));
 
 // ---------------------------------------------------------------------------
 // Auto-Complete (Completion Item Provider)
