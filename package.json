@@ -39,13 +39,22 @@
         "commands": [
             {
                 "command": "ink.generateAudio",
-                "title": "Generate Audio"
+                "title": "生成语音"
+            },
+            {
+                "command": "ink.generateImage",
+                "title": "生成图片"
             }
         ],
         "menus": {
             "editor/context": [
                 {
                     "command": "ink.generateAudio",
+                    "when": "editorHasSelection && resourceLangId == ink",
+                    "group": "ink@1"
+                },
+                {
+                    "command": "ink.generateImage",
                     "when": "editorHasSelection && resourceLangId == ink",
                     "group": "ink@1"
                 }
