@@ -22,7 +22,6 @@ CancellationToken,
     SymbolKind,
     TextDocument,
     Uri,
-    window,
     workspace,
 } from "vscode";
 import { basename, dirname, join, resolve } from "path";
@@ -763,7 +762,6 @@ const imageLinkProvider: DocumentLinkProvider = {
                 range,
                 Uri.file(absPath),
             );
-            // link.tooltip = absPath;
             links.push(link);
         }
         return links;
@@ -838,17 +836,13 @@ const ensureWorkspaceConfig = () => {
     }
 };
 
-const activate = (context: { extensionUri: Uri; subscriptions: Disposable[]; }) => {
+const activate = async (context: { extensionUri: Uri; subscriptions: Disposable[]; }) => {
     const INK = { language: "ink" };
 
-    ensureWorkspaceConfig();
+    const inks = await workspace.findFiles("**/*.ink");
+    console.log(inks)
 
-    // Command: open / focus the counter panel in the sidebar
-    context.subscriptions.push(
-        commands.registerCommand("ink.openCounter", () => {
-            commands.executeCommand("ink.counterView.focus");
-        }),
-    );
+    ensureWorkspaceConfig();
 
     context.subscriptions.push(
         languages.registerDefinitionProvider(INK, definitionProvider),

@@ -1,5 +1,31 @@
-// --- 1. TYPES & AST ---
+import * as fs from "fs"
 
+export const buildStory = (entry_file_path: string): StoryAST | Error => {
+    const text = fs.readFileSync(entry_file_path, "utf8");
+
+    // Pipeline
+    // Tokenization / Lexing
+    const rawTokens = tokenize(text, entry_file_path);
+    const resolvedTokens = resolveIncludes(
+        rawTokens,
+        new Set([entry_file_path]),
+    );
+    if (resolvedTokens instanceof Error) {
+        return resolvedTokens;
+    }
+
+    // Parsing
+    const ast = parse(resolvedTokens);
+    if (ast instanceof Error) {
+        return ast;
+    }
+
+    return ast;
+};
+
+///////////////
+// Tokenizer //
+///////////////
 export type TokenType =
     | "KNOT"
     | "STITCH"
@@ -18,77 +44,6 @@ export type Token = {
     file: string;
 };
 
-//  | {
-//     type: "TAG",
-//     value: {
-//         name: string,
-//         value: string
-//     },
-//     file: string,
-//     line: string,
-//     col: string
-// };
-
-// AST Nodes
-export type TextNode = { type: "Text"; text: string };
-export type DivertNode = { type: "Divert"; target: string };
-export type TagNode = { type: "Tag"; name: string; value: string };
-export type ContentNode = TextNode | DivertNode | TagNode;
-
-export type OptionNode = {
-    type: "Option";
-    text: string;
-    content: ContentNode[];
-};
-
-export type BlockNode = {
-    content: ContentNode[];
-    options: OptionNode[];
-};
-
-export type StitchNode = {
-    type: "Stitch";
-    name: string;
-    block: BlockNode;
-};
-
-export type KnotNode = {
-    type: "Knot";
-    name: string;
-    block: BlockNode;
-    stitches: StitchNode[];
-};
-
-export type StoryAST = {
-    type: "Story";
-    knots: KnotNode[];
-};
-
-// Compiled JSON Output
-export type CompiledContent =
-    | { type: "text"; text: string }
-    | { type: "divert"; target: string };
-
-export type CompiledOption = {
-    text: string;
-    content: CompiledContent[];
-};
-
-export type CompiledBlock = {
-    content: CompiledContent[];
-    options: CompiledOption[];
-};
-
-export type CompiledStory = {
-    knots: Record<
-        string,
-        CompiledBlock & {
-            stitches: Record<string, CompiledBlock>;
-        }
-    >;
-};
-
-// --- 2. TOKENIZER ---
 const parseLineToToken = (
     line: string,
     lineNum: number,
@@ -182,6 +137,7 @@ export const tokenize = (input: string, filename: string): Token[] => {
 };
 
 import * as path from "@std/path";
+import { fstat } from "node:fs";
 export const resolveIncludes = (
     tokens: Token[],
     visited: Set<string>,
@@ -224,31 +180,70 @@ export const resolveIncludes = (
     return [head, ...r];
 };
 
-// --- 3. PARSER ---
+////////////
+// Parser //
+////////////
+export type TextNode = { type: "Text"; text: string };
+export type DivertNode = { type: "Divert"; target: string };
+export type TagNode = { type: "Tag"; name: string; value: string };
+export type ContentNode = TextNode | DivertNode | TagNode;
+
+export type OptionNode = {
+    type: "Option";
+    text: string;
+    content: ContentNode[];
+};
+
+export type BlockNode = {
+    content: ContentNode[];
+    options: OptionNode[];
+};
+
+export type StitchNode = {
+    type: "Stitch";
+    name: string;
+    block: BlockNode;
+};
+
+export type KnotNode = {
+    type: "Knot";
+    name: string;
+    block: BlockNode;
+    stitches: StitchNode[];
+};
+
+export type StoryAST = {
+    type: "Story";
+    knots: KnotNode[];
+};
+
+// Compiled JSON Output
+export type CompiledContent =
+    | { type: "text"; text: string }
+    | { type: "divert"; target: string };
+
+export type CompiledOption = {
+    text: string;
+    content: CompiledContent[];
+};
+
+export type CompiledBlock = {
+    content: CompiledContent[];
+    options: CompiledOption[];
+};
+
+export type CompiledStory = {
+    knots: Record<
+        string,
+        CompiledBlock & {
+            stitches: Record<string, CompiledBlock>;
+        }
+    >;
+};
 
 type ParseResult<T> = { value: T; rest: Token[] };
 
-const formatError = (msg: string, t: Token) =>
-    `Syntax Error in ${t.file} at line ${t.line}: ${msg}. Found: '${t.type}'`;
 
-const isBlockEnd = (
-    t: Token,
-    context: "KNOT" | "STITCH" | "OPTION",
-): boolean => {
-    if (t.type === "EOF" || t.type === "KNOT") {
-        return true;
-    }
-    if (t.type == "STITCH" && context == "KNOT") {
-        return true;
-    }
-    if (context === "STITCH" || context === "OPTION") {
-        if (t.type === "STITCH") {
-            return true;
-        }
-    }
-    if (context === "OPTION" && t.type === "OPTION") return true;
-    return false;
-};
 
 const parseContentNode = (
     tokens: Token[],
@@ -433,32 +428,29 @@ export const parse = (tokens: Token[]): StoryAST | Error => {
     return { type: "Story", knots };
 };
 
-// --- ORCHESTRATOR ---
-export const buildStory = (
-    entry_file_path: string,
-): CompiledStory | StoryAST | Error => {
-    const text = Deno.readTextFileSync(entry_file_path);
 
-    // Pipeline
-    // Tokenization / Lexing
-    const rawTokens = tokenize(text, entry_file_path);
-    const resolvedTokens = resolveIncludes(
-        rawTokens,
-        new Set([entry_file_path]),
-    );
-    if (resolvedTokens instanceof Error) {
-        return resolvedTokens;
+
+// Helpers
+const formatError = (msg: string, t: Token) =>
+    `Syntax Error in ${t.file} at line ${t.line}: ${msg}. Found: '${t.type}'`;
+
+const isBlockEnd = (
+    t: Token,
+    context: "KNOT" | "STITCH" | "OPTION",
+): boolean => {
+    if (t.type === "EOF" || t.type === "KNOT") {
+        return true;
     }
-
-    // Parsing
-    const ast = parse(resolvedTokens);
-    if (ast instanceof Error) {
-        return ast;
+    if (t.type == "STITCH" && context == "KNOT") {
+        return true;
     }
-
-    // Compilation
-    return ast;
-    // return compile(ast);
+    if (context === "STITCH" || context === "OPTION") {
+        if (t.type === "STITCH") {
+            return true;
+        }
+    }
+    if (context === "OPTION" && t.type === "OPTION") return true;
+    return false;
 };
 
 Deno.test("test", async () => {
