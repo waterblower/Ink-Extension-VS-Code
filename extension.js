@@ -797,6 +797,74 @@ const documentHighlightProvider = {
 /**
  * @param {vscode.ExtensionContext} context
  */
+// ---------------------------------------------------------------------------
+// Counter Webview Provider (sidebar)
+// ---------------------------------------------------------------------------
+
+class CounterViewProvider {
+    constructor(extensionUri) {
+        this._extensionUri = extensionUri;
+        this._view = undefined;
+        this._counter = 0;
+    }
+
+    resolveWebviewView(webviewView, _context, _token) {
+        this._view = webviewView;
+
+        webviewView.webview.options = {
+            enableScripts: true,
+            localResourceRoots: [
+                vscode.Uri.joinPath(this._extensionUri, "webview-ui", "dist"),
+            ],
+        };
+
+        // Convert the on-disk path to a webview-safe URI
+        const scriptUri = webviewView.webview.asWebviewUri(
+            vscode.Uri.joinPath(
+                this._extensionUri,
+                "webview-ui",
+                "dist",
+                "assets",
+                "index-B9ZAD9xL.js",
+            ),
+        );
+        const styleUri = webviewView.webview.asWebviewUri(
+            vscode.Uri.joinPath(
+                this._extensionUri,
+                "webview-ui",
+                "dist",
+                "assets",
+                "index-D6A0p-WS.css",
+            ),
+        );
+
+        webviewView.webview.html = this._getHtml(scriptUri, styleUri);
+    }
+
+    _postCount() {
+        if (this._view) {
+            this._view.webview.postMessage({
+                command: "update",
+                count: this._counter,
+            });
+        }
+    }
+
+    _getHtml(scriptUri, styleUri) {
+        return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="stylesheet" href="${styleUri}" />
+</head>
+<body>
+  <div id="app"></div>
+  <script type="module" src="${scriptUri}"></script>
+</body>
+</html>`;
+    }
+}
+
 const ensureWorkspaceConfig = () => {
     const folders = vscode.workspace.workspaceFolders;
     if (!folders || folders.length === 0) return;
@@ -818,6 +886,22 @@ const activate = (context) => {
     const INK = { language: "ink" };
 
     ensureWorkspaceConfig();
+
+    // Register the sidebar counter webview provider
+    const counterProvider = new CounterViewProvider(context.extensionUri);
+    context.subscriptions.push(
+        vscode.window.registerWebviewViewProvider(
+            "ink.counterView",
+            counterProvider,
+        ),
+    );
+
+    // Command: open / focus the counter panel in the sidebar
+    context.subscriptions.push(
+        vscode.commands.registerCommand("ink.openCounter", () => {
+            vscode.commands.executeCommand("ink.counterView.focus");
+        }),
+    );
 
     context.subscriptions.push(
         vscode.languages.registerDefinitionProvider(INK, definitionProvider),
