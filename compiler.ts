@@ -11,12 +11,12 @@ export type TokenType =
     | "EOF";
 
 export type Token = {
-     type: TokenType;
-     value: string;
-     line: number;
-     col: number;
-     file: string;
-}
+    type: TokenType;
+    value: string;
+    line: number;
+    col: number;
+    file: string;
+};
 
 //  | {
 //     type: "TAG",
@@ -30,64 +30,62 @@ export type Token = {
 // };
 
 // AST Nodes
-export type TextNode = {  type: "Text";  text: string };
-export type DivertNode = {  type: "Divert";  target: string };
-export type TagNode = {  type: "Tag";  name: string, value: string };
+export type TextNode = { type: "Text"; text: string };
+export type DivertNode = { type: "Divert"; target: string };
+export type TagNode = { type: "Tag"; name: string; value: string };
 export type ContentNode = TextNode | DivertNode | TagNode;
 
 export type OptionNode = {
-     type: "Option";
-     text: string;
-     content:  ContentNode[];
+    type: "Option";
+    text: string;
+    content: ContentNode[];
 };
 
 export type BlockNode = {
-     content:  ContentNode[];
-     options:  OptionNode[];
+    content: ContentNode[];
+    options: OptionNode[];
 };
 
 export type StitchNode = {
-     type: "Stitch";
-     name: string;
-     block: BlockNode;
+    type: "Stitch";
+    name: string;
+    block: BlockNode;
 };
 
 export type KnotNode = {
-     type: "Knot";
-     name: string;
-     block: BlockNode;
-     stitches:  StitchNode[];
+    type: "Knot";
+    name: string;
+    block: BlockNode;
+    stitches: StitchNode[];
 };
 
 export type StoryAST = {
-     type: "Story";
-     knots:  KnotNode[];
+    type: "Story";
+    knots: KnotNode[];
 };
 
 // Compiled JSON Output
 export type CompiledContent =
-    | {  type: "text";  text: string }
-    | {  type: "divert";  target: string };
+    | { type: "text"; text: string }
+    | { type: "divert"; target: string };
 
 export type CompiledOption = {
-     text: string;
-     content:  CompiledContent[];
+    text: string;
+    content: CompiledContent[];
 };
 
 export type CompiledBlock = {
-     content:  CompiledContent[];
-     options:  CompiledOption[];
+    content: CompiledContent[];
+    options: CompiledOption[];
 };
 
 export type CompiledStory = {
-     knots: 
-        Record<
-            string,
-            CompiledBlock & {
-                stitches: Record<string, CompiledBlock>
-            }
-        >
-    
+    knots: Record<
+        string,
+        CompiledBlock & {
+            stitches: Record<string, CompiledBlock>;
+        }
+    >;
 };
 
 // --- 2. TOKENIZER ---
@@ -156,7 +154,6 @@ const parseLineToToken = (
 
     const matchTag = trimmed.match(/^#(\s*[a-zA-Z0-9]+\s*:\s*.+)/);
     if (matchTag) {
-
         return {
             type: "TAG",
             value: matchTag[1].trim(),
@@ -169,7 +166,7 @@ const parseLineToToken = (
     return { type: "TEXT", value: trimmed, line: lineNum, col: 1, file };
 };
 
-export const tokenize = (input: string, filename: string):  Token[] => {
+export const tokenize = (input: string, filename: string): Token[] => {
     const lines = input.split("\n");
     const tokens = lines
         .map((line, idx) => parseLineToToken(line, idx + 1, filename))
@@ -184,11 +181,11 @@ export const tokenize = (input: string, filename: string):  Token[] => {
     }];
 };
 
-import * as path from "@std/path"
+import * as path from "@std/path";
 export const resolveIncludes = (
-    tokens:  Token[],
+    tokens: Token[],
     visited: Set<string>,
-):  Token[] | Error => {
+): Token[] | Error => {
     if (tokens.length === 0) return [];
     const [head, ...tail] = tokens;
 
@@ -199,14 +196,13 @@ export const resolveIncludes = (
                 `Compiler Error: Circular INCLUDE detected -> ${filename} at ${head.file}:${head.line}`,
             );
         }
-        const dir = path.dirname(Deno.realPathSync(head.file))
-        const included_file_path = path.join(dir, filename)
-        const file_content = Deno.readTextFileSync(included_file_path)
+        const dir = path.dirname(Deno.realPathSync(head.file));
+        const included_file_path = path.join(dir, filename);
+        const file_content = Deno.readTextFileSync(included_file_path);
 
         // Tokenize the included file, strip its EOF, and recurse
-        const includedTokens = tokenize(file_content, included_file_path).filter((t) =>
-            t.type !== "EOF"
-        );
+        const includedTokens = tokenize(file_content, included_file_path)
+            .filter((t) => t.type !== "EOF");
         const resolvedIncluded = resolveIncludes(includedTokens, visited);
         if (resolvedIncluded instanceof Error) {
             return resolvedIncluded;
@@ -230,7 +226,7 @@ export const resolveIncludes = (
 
 // --- 3. PARSER ---
 
-type ParseResult<T> = {  value: T;  rest:  Token[] };
+type ParseResult<T> = { value: T; rest: Token[] };
 
 const formatError = (msg: string, t: Token) =>
     `Syntax Error in ${t.file} at line ${t.line}: ${msg}. Found: '${t.type}'`;
@@ -242,8 +238,8 @@ const isBlockEnd = (
     if (t.type === "EOF" || t.type === "KNOT") {
         return true;
     }
-    if(t.type == "STITCH" && context == "KNOT") {
-        return true
+    if (t.type == "STITCH" && context == "KNOT") {
+        return true;
     }
     if (context === "STITCH" || context === "OPTION") {
         if (t.type === "STITCH") {
@@ -254,7 +250,9 @@ const isBlockEnd = (
     return false;
 };
 
-const parseContentNode = (tokens: Token[]): ParseResult<ContentNode> | Error => {
+const parseContentNode = (
+    tokens: Token[],
+): ParseResult<ContentNode> | Error => {
     const head = tokens[0];
     if (head.type === "TEXT") {
         return {
@@ -268,24 +266,24 @@ const parseContentNode = (tokens: Token[]): ParseResult<ContentNode> | Error => 
             rest: tokens.slice(1),
         };
     }
-    if(head.type == "TAG") {
-        const [name, value] = head.value.split(":")
+    if (head.type == "TAG") {
+        const [name, value] = head.value.split(":");
         return {
             rest: tokens.slice(1),
             value: {
                 type: "Tag",
                 name: name.trim(),
-                value: value.trim()
-            }
-        }
+                value: value.trim(),
+            },
+        };
     }
     return new Error(formatError("Unexpected token in content", head));
 };
 
 const parseBlockContent = (
-    tokens:  Token[],
+    tokens: Token[],
     context: "KNOT" | "STITCH" | "OPTION",
-): ParseResult< ContentNode[]> | Error => {
+): ParseResult<ContentNode[]> | Error => {
     if (
         tokens.length === 0 || isBlockEnd(tokens[0], context) ||
         tokens[0].type === "OPTION"
@@ -293,12 +291,11 @@ const parseBlockContent = (
         return { value: [], rest: tokens };
     }
 
-    console.log("context", tokens[0])
     const content_node = parseContentNode(tokens);
-    if(content_node instanceof Error) {
-        return content_node
+    if (content_node instanceof Error) {
+        return content_node;
     }
-    const { value: node, rest: afterNode } = content_node
+    const { value: node, rest: afterNode } = content_node;
 
     const next = parseBlockContent(afterNode, context);
     if (next instanceof Error) {
@@ -308,8 +305,8 @@ const parseBlockContent = (
 };
 
 const parseOptions = (
-    tokens:  Token[],
-): ParseResult< OptionNode[]> | Error => {
+    tokens: Token[],
+): ParseResult<OptionNode[]> | Error => {
     if (tokens.length === 0 || tokens[0].type !== "OPTION") {
         return { value: [], rest: tokens };
     }
@@ -334,7 +331,7 @@ const parseOptions = (
 };
 
 const parseBlock = (
-    tokens:  Token[],
+    tokens: Token[],
     context: "KNOT" | "STITCH",
 ): ParseResult<BlockNode> | Error => {
     const block_content = parseBlockContent(tokens, context);
@@ -357,8 +354,8 @@ const parseBlock = (
 };
 
 const parseStitches = (
-    tokens:  Token[],
-): ParseResult< StitchNode[]> | Error => {
+    tokens: Token[],
+): ParseResult<StitchNode[]> | Error => {
     if (tokens.length === 0 || tokens[0].type !== "STITCH") {
         return { value: [], rest: tokens };
     }
@@ -368,22 +365,22 @@ const parseStitches = (
         tokens.slice(1),
         "STITCH",
     );
-    if(content_block instanceof Error) {
-        return content_block
+    if (content_block instanceof Error) {
+        return content_block;
     }
     const { value: block, rest: afterBlock } = content_block;
     const stitchNode: StitchNode = { type: "Stitch", name: head.value, block };
 
     const next = parseStitches(afterBlock);
-    if(next instanceof Error) {
-        return next
+    if (next instanceof Error) {
+        return next;
     }
     return { value: [stitchNode, ...next.value], rest: next.rest };
 };
 
 const parseKnots = (
-    tokens:  Token[],
-): ParseResult< KnotNode[]> | Error => {
+    tokens: Token[],
+): ParseResult<KnotNode[]> | Error => {
     if (tokens.length === 0 || tokens[0].type === "EOF") {
         return { value: [], rest: tokens };
     }
@@ -395,20 +392,20 @@ const parseKnots = (
         return new Error(formatError("Expected Knot declaration", head));
     }
 
-    const block_content =  parseBlock(
+    const block_content = parseBlock(
         tokens.slice(1),
         "KNOT",
     );
-    if(block_content instanceof Error) {
-        return block_content
+    if (block_content instanceof Error) {
+        return block_content;
     }
-    const { value: block, rest: afterBlock } = block_content
+    const { value: block, rest: afterBlock } = block_content;
 
     const stitches = parseStitches(afterBlock);
-    if(stitches instanceof Error) {
-        return stitches
+    if (stitches instanceof Error) {
+        return stitches;
     }
-    const { value } = stitches
+    const { value } = stitches;
 
     const knotNode: KnotNode = {
         type: "Knot",
@@ -418,54 +415,53 @@ const parseKnots = (
     };
 
     const next = parseKnots(stitches.rest);
-    if(next instanceof Error) {
-        return next
+    if (next instanceof Error) {
+        return next;
     }
     return { value: [knotNode, ...next.value], rest: next.rest };
 };
 
-export const parse = (tokens:  Token[]): StoryAST | Error => {
+export const parse = (tokens: Token[]): StoryAST | Error => {
     const _knots = parseKnots(tokens);
-    if(_knots instanceof Error) {
-        return _knots
+    if (_knots instanceof Error) {
+        return _knots;
     }
-    const { value: knots, rest } =  _knots
+    const { value: knots, rest } = _knots;
     if (rest.length > 0 && rest[0].type !== "EOF") {
         return new Error(formatError("Unexpected trailing tokens", rest[0]));
     }
     return { type: "Story", knots };
 };
 
-
 // --- ORCHESTRATOR ---
 export const buildStory = (
     entry_file_path: string,
 ): CompiledStory | StoryAST | Error => {
-
-    const text = Deno.readTextFileSync(entry_file_path)
+    const text = Deno.readTextFileSync(entry_file_path);
 
     // Pipeline
     // Tokenization / Lexing
     const rawTokens = tokenize(text, entry_file_path);
-    const resolvedTokens = resolveIncludes(rawTokens, new Set([entry_file_path]));
-    if(resolvedTokens instanceof Error) {
-        return resolvedTokens
+    const resolvedTokens = resolveIncludes(
+        rawTokens,
+        new Set([entry_file_path]),
+    );
+    if (resolvedTokens instanceof Error) {
+        return resolvedTokens;
     }
 
     // Parsing
     const ast = parse(resolvedTokens);
-    if(ast instanceof Error) {
-        return ast
+    if (ast instanceof Error) {
+        return ast;
     }
 
     // Compilation
-    return ast
+    return ast;
     // return compile(ast);
 };
 
-
-Deno.test("test", () => {
+Deno.test("test", async () => {
     const result = buildStory("../stories/story1/world.ink");
-    console.log(result)
-    Deno.writeTextFileSync("./test.json", JSON.stringify(result, null, 2))
-})
+    await Deno.writeTextFile("./test.json", JSON.stringify(result, null, 2));
+});
