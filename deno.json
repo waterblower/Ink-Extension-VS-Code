@@ -1,5 +1,8 @@
 {
     "fmt": {
         "indentWidth": 4
+    },
+    "imports": {
+        "@std/path": "jsr:@std/path@^1.1.4"
     }
 }
