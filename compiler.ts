@@ -199,13 +199,6 @@ export const resolveIncludes = (
                 `Compiler Error: Circular INCLUDE detected -> ${filename} at ${head.file}:${head.line}`,
             );
         }
-        // const fileContent = files[filename];
-        // if (fileContent === undefined) {
-        //     return new Error(
-        //         `Compiler Error: Included file not found -> ${filename} at ${head.file}:${head.line}`,
-        //     );
-        // }
-        // console.log(head.file,  )
         const dir = path.dirname(Deno.realPathSync(head.file))
         const included_file_path = path.join(dir, filename)
         const file_content = Deno.readTextFileSync(included_file_path)
@@ -246,15 +239,22 @@ const isBlockEnd = (
     t: Token,
     context: "KNOT" | "STITCH" | "OPTION",
 ): boolean => {
-    if (t.type === "EOF" || t.type === "KNOT") return true;
+    if (t.type === "EOF" || t.type === "KNOT") {
+        return true;
+    }
+    if(t.type == "STITCH" && context == "KNOT") {
+        return true
+    }
     if (context === "STITCH" || context === "OPTION") {
-        if (t.type === "STITCH") return true;
+        if (t.type === "STITCH") {
+            return true;
+        }
     }
     if (context === "OPTION" && t.type === "OPTION") return true;
     return false;
 };
 
-const parseContentNode = (tokens:  Token[]): ParseResult<ContentNode> | Error => {
+const parseContentNode = (tokens: Token[]): ParseResult<ContentNode> | Error => {
     const head = tokens[0];
     if (head.type === "TEXT") {
         return {
@@ -293,6 +293,7 @@ const parseBlockContent = (
         return { value: [], rest: tokens };
     }
 
+    console.log("context", tokens[0])
     const content_node = parseContentNode(tokens);
     if(content_node instanceof Error) {
         return content_node
