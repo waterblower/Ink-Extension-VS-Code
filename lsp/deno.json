@@ -1,15 +1,15 @@
 {
-  "fmt": {
-    "indentWidth": 4
-  },
-  "tasks": {
-    "build": "deno compile -A --output ../extension/lsp lsp.ts"
-  },
-  "imports": {
-    "@std/fs": "jsr:@std/fs@^1.0.23",
-    "@std/path": "jsr:@std/path@^1.1.4",
-    "vscode-languageserver": "npm:vscode-languageserver@^9.0.1",
-    "vscode-languageserver-textdocument": "npm:vscode-languageserver-textdocument@^1.0.12"
-  },
-  "nodeModulesDir": "auto"
+    "fmt": {
+        "indentWidth": 4
+    },
+    "tasks": {
+        "build": "deno compile -A --output ../extension/lsp lsp.ts"
+    },
+    "imports": {
+        "@std/fs": "jsr:@std/fs@^1.0.23",
+        "@std/path": "jsr:@std/path@^1.1.4",
+        "vscode-languageserver": "npm:vscode-languageserver@^9.0.1",
+        "vscode-languageserver-textdocument": "npm:vscode-languageserver-textdocument@^1.0.12"
+    },
+    "nodeModulesDir": "auto"
 }

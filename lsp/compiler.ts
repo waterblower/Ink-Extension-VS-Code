@@ -1,7 +1,5 @@
-import * as fs from "fs";
-
 export const buildStory = (entry_file_path: string): StoryAST | Error => {
-    const text = fs.readFileSync(entry_file_path, "utf8");
+    const text = Deno.readTextFileSync(entry_file_path);
 
     // Pipeline
     // Tokenization / Lexing
@@ -137,7 +135,6 @@ export const tokenize = (input: string, filename: string): Token[] => {
 };
 
 import * as path from "@std/path";
-import { fstat } from "node:fs";
 export const resolveIncludes = (
     tokens: Token[],
     visited: Set<string>,
@@ -214,31 +211,8 @@ export type KnotNode = {
 
 export type StoryAST = {
     type: "Story";
+    block: BlockNode;
     knots: KnotNode[];
-};
-
-// Compiled JSON Output
-export type CompiledContent =
-    | { type: "text"; text: string }
-    | { type: "divert"; target: string };
-
-export type CompiledOption = {
-    text: string;
-    content: CompiledContent[];
-};
-
-export type CompiledBlock = {
-    content: CompiledContent[];
-    options: CompiledOption[];
-};
-
-export type CompiledStory = {
-    knots: Record<
-        string,
-        CompiledBlock & {
-            stitches: Record<string, CompiledBlock>;
-        }
-    >;
 };
 
 type ParseResult<T> = { value: T; rest: Token[] };
@@ -269,6 +243,27 @@ const parseContentNode = (
                 value: value.trim(),
             },
         };
+    }
+    return new Error(formatError("Unexpected token in content", head));
+};
+
+const parseContentNode_v2 = (
+    token: Token,
+): ContentNode | Error => {
+    const head = token;
+    if (head.type === "TEXT") {
+        return  { type: "Text", text: head.value }
+    }
+    if (head.type === "DIVERT") {
+        return { type: "Divert", target: head.value }
+    }
+    if (head.type == "TAG") {
+        const [name, value] = head.value.split(":");
+        return {
+                type: "Tag",
+                name: name.trim(),
+                value: value.trim(),
+            }
     }
     return new Error(formatError("Unexpected token in content", head));
 };
@@ -379,8 +374,6 @@ const parseKnots = (
     }
 
     const head = tokens[0];
-    // In Ink, content at the very top (before any knot) runs automatically.
-    // For our minimal AST, we expect strict knot definitions or we throw.
     if (head.type !== "KNOT") {
         return new Error(formatError("Expected Knot declaration", head));
     }
@@ -415,7 +408,11 @@ const parseKnots = (
 };
 
 export const parse = (tokens: Token[]): StoryAST | Error => {
-    const _knots = parseKnots(tokens);
+    const block = parseBlock_V2(tokens);
+    if (block instanceof Error) {
+        return block;
+    }
+    const _knots = parseKnots(block.rest);
     if (_knots instanceof Error) {
         return _knots;
     }
@@ -423,12 +420,52 @@ export const parse = (tokens: Token[]): StoryAST | Error => {
     if (rest.length > 0 && rest[0].type !== "EOF") {
         return new Error(formatError("Unexpected trailing tokens", rest[0]));
     }
-    return { type: "Story", knots };
+    return { type: "Story", block: block.value, knots };
 };
 
-// Helpers
+const parseBlock_V2 = (
+    tokens: Token[],
+): ParseResult<BlockNode> | Error => {
+    const block_content = parseBlockContent_V2(tokens);
+    if (block_content instanceof Error) {
+        return block_content;
+    }
+    const { value: content, rest: afterContent } = block_content;
+
+    const options = parseOptions(afterContent);
+    if (options instanceof Error) {
+        return options;
+    }
+    return {
+        value: {
+            content,
+            options: options.value,
+        },
+        rest: options.rest,
+    };
+};
+const parseBlockContent_V2 = (
+    tokens: Token[],
+): ParseResult<ContentNode[]> | Error => {
+    if(tokens.length === 0) {
+        return new Error("should not have 0 tokens at this stage")
+    }
+    const nodes: ContentNode[] = []
+    for(const token of tokens) {
+        const content_node = parseContentNode_v2(token);
+        if (content_node instanceof Error) {
+            break
+        }
+        nodes.push(content_node)
+    }
+    return { value: nodes, rest: tokens.slice(nodes.length) };
+};
+
+/////////////
+// Helpers //
+/////////////
 const formatError = (msg: string, t: Token) =>
-    `Syntax Error in ${t.file} at line ${t.line}: ${msg}. Found: '${t.type}'`;
+    `Syntax Error in ${t.file}:${t.line} - ${msg}. Found: '${t.type}'`;
 
 const isBlockEnd = (
     t: Token,
@@ -450,6 +487,24 @@ const isBlockEnd = (
 };
 
 Deno.test("test", async () => {
-    const result = buildStory("../stories/story1/world.ink");
-    await Deno.writeTextFile("./test.json", JSON.stringify(result, null, 2));
+    {
+        const result = buildStory("../../stories/story1/vars.ink");
+        if (result instanceof Error) {
+            console.error(result);
+        }
+        await Deno.writeTextFile(
+            "./test.json",
+            JSON.stringify(result, null, 2),
+        );
+    }
+    {
+        const result = buildStory("../../stories/story1/world.ink");
+        if (result instanceof Error) {
+            console.error(result);
+        }
+        await Deno.writeTextFile(
+            "./test.json",
+            JSON.stringify(result, null, 2),
+        );
+    }
 });

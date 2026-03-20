@@ -34,12 +34,14 @@ documents.onDidChangeContent((change) => {
     validateTextDocument(change.document);
 });
 
+import { fromFileUrl } from "@std/path";
 async function validateTextDocument(textDocument: TextDocument): Promise<void> {
     const text = textDocument.getText();
     const uri = textDocument.uri;
 
     // Strip the 'file://' prefix for your compiler's internal tracking
-    const filePath = uri.replace("file://", "");
+    // const filePath = uri.replace("file://", "");
+    const filePath = fromFileUrl(uri);
     const diagnostics: Diagnostic[] = [];
 
     // Run your pipeline on the live editor text
@@ -86,3 +88,4 @@ documents.listen(connection);
 
 // Listen on the connection
 connection.listen();
+console.log("Ink LSP started")
