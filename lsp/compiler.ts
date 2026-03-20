@@ -252,18 +252,18 @@ const parseContentNode_v2 = (
 ): ContentNode | Error => {
     const head = token;
     if (head.type === "TEXT") {
-        return  { type: "Text", text: head.value }
+        return { type: "Text", text: head.value };
     }
     if (head.type === "DIVERT") {
-        return { type: "Divert", target: head.value }
+        return { type: "Divert", target: head.value };
     }
     if (head.type == "TAG") {
         const [name, value] = head.value.split(":");
         return {
-                type: "Tag",
-                name: name.trim(),
-                value: value.trim(),
-            }
+            type: "Tag",
+            name: name.trim(),
+            value: value.trim(),
+        };
     }
     return new Error(formatError("Unexpected token in content", head));
 };
@@ -447,16 +447,16 @@ const parseBlock_V2 = (
 const parseBlockContent_V2 = (
     tokens: Token[],
 ): ParseResult<ContentNode[]> | Error => {
-    if(tokens.length === 0) {
-        return new Error("should not have 0 tokens at this stage")
+    if (tokens.length === 0) {
+        return new Error("should not have 0 tokens at this stage");
     }
-    const nodes: ContentNode[] = []
-    for(const token of tokens) {
+    const nodes: ContentNode[] = [];
+    for (const token of tokens) {
         const content_node = parseContentNode_v2(token);
         if (content_node instanceof Error) {
-            break
+            break;
         }
-        nodes.push(content_node)
+        nodes.push(content_node);
     }
     return { value: nodes, rest: tokens.slice(nodes.length) };
 };
