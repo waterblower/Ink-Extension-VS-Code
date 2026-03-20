@@ -3,7 +3,7 @@
     "indentWidth": 4
   },
   "tasks": {
-    "build": "deno compile --output ../extension/lsp lsp.ts"
+    "build": "deno compile -A --output ../extension/lsp lsp.ts"
   },
   "imports": {
     "@std/fs": "jsr:@std/fs@^1.0.23",
