@@ -1,4 +1,4 @@
-import * as fs from "fs"
+import * as fs from "fs";
 
 export const buildStory = (entry_file_path: string): StoryAST | Error => {
     const text = fs.readFileSync(entry_file_path, "utf8");
@@ -243,8 +243,6 @@ export type CompiledStory = {
 
 type ParseResult<T> = { value: T; rest: Token[] };
 
-
-
 const parseContentNode = (
     tokens: Token[],
 ): ParseResult<ContentNode> | Error => {
@@ -427,8 +425,6 @@ export const parse = (tokens: Token[]): StoryAST | Error => {
     }
     return { type: "Story", knots };
 };
-
-
 
 // Helpers
 const formatError = (msg: string, t: Token) =>

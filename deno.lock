@@ -4,6 +4,8 @@
     "jsr:@std/internal@^1.0.12": "1.0.12",
     "jsr:@std/path@^1.1.4": "1.1.4",
     "npm:typescript@^5.9.3": "5.9.3",
+    "npm:vscode-languageserver-textdocument@^1.0.12": "1.0.12",
+    "npm:vscode-languageserver@^9.0.1": "9.0.1",
     "npm:vscode@^1.1.37": "1.1.37"
   },
   "jsr": {
@@ -220,6 +222,29 @@
       "integrity": "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==",
       "bin": true
     },
+    "vscode-jsonrpc@8.2.0": {
+      "integrity": "sha512-C+r0eKJUIfiDIfwJhria30+TYWPtuHJXHtI7J0YlOmKAo7ogxP20T0zxB7HZQIFhIyvoBPwWskjxrvAtfjyZfA=="
+    },
+    "vscode-languageserver-protocol@3.17.5": {
+      "integrity": "sha512-mb1bvRJN8SVznADSGWM9u/b07H7Ecg0I3OgXDuLdn307rl/J3A9YD6/eYOssqhecL27hK1IPZAsaqh00i/Jljg==",
+      "dependencies": [
+        "vscode-jsonrpc",
+        "vscode-languageserver-types"
+      ]
+    },
+    "vscode-languageserver-textdocument@1.0.12": {
+      "integrity": "sha512-cxWNPesCnQCcMPeenjKKsOCKQZ/L6Tv19DTRIGuLWe32lyzWhihGVJ/rcckZXJxfdKCFvRLS3fpBIsV/ZGX4zA=="
+    },
+    "vscode-languageserver-types@3.17.5": {
+      "integrity": "sha512-Ld1VelNuX9pdF39h2Hgaeb5hEZM2Z3jUrrMgWQAu82jMtZp7p3vJT3BzToKtZI7NgQssZje5o0zryOrhQvzQAg=="
+    },
+    "vscode-languageserver@9.0.1": {
+      "integrity": "sha512-woByF3PDpkHFUreUa7Hos7+pUWdeWMXRd26+ZX2A8cFx6v/JPTtd4/uN0/jB6XQHYaOlHbio03NTHCqrgG5n7g==",
+      "dependencies": [
+        "vscode-languageserver-protocol"
+      ],
+      "bin": true
+    },
     "vscode-test@0.4.3": {
       "integrity": "sha512-EkMGqBSefZH2MgW65nY05rdRSko15uvzq4VAPM5jVmwYuFQKE7eikKXNJDRxL+OITXHB6pI+a3XqqD32Y3KC5w==",
       "dependencies": [
@@ -253,6 +278,8 @@
     "packageJson": {
       "dependencies": [
         "npm:typescript@^5.9.3",
+        "npm:vscode-languageserver-textdocument@^1.0.12",
+        "npm:vscode-languageserver@^9.0.1",
         "npm:vscode@^1.1.37"
       ]
     }
