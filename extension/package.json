@@ -1,99 +1,102 @@
 {
-    "name": "ink-lang",
-    "displayName": "Ink Language",
-    "description": "Syntax highlighting for inkle's Ink scripting language (.ink files)",
-    "version": "0.2.0",
-    "publisher": "water2077",
-    "icon": "inky-icon.png",
-    "engines": {
-        "vscode": "^1.0.0"
-    },
-    "repository": {
-        "url": "https://github.com/waterblower/Ink-Extension-VS-Code"
-    },
-    "categories": [
-        "Programming Languages"
+  "name": "ink-lang",
+  "displayName": "Ink Language",
+  "description": "Syntax highlighting for inkle's Ink scripting language (.ink files)",
+  "version": "0.2.0",
+  "publisher": "water2077",
+  "icon": "inky-icon.png",
+  "engines": {
+    "vscode": "^1.0.0"
+  },
+  "repository": {
+    "url": "https://github.com/waterblower/Ink-Extension-VS-Code"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "scripts": {
+    "vite": "vite build"
+  },
+  "main": "./extension.js",
+  "types": "./dist/extension.d.ts",
+  "type": "commonjs",
+  "contributes": {
+    "languages": [
+      {
+        "id": "ink",
+        "aliases": [
+          "Ink",
+          "ink"
+        ],
+        "extensions": [
+          ".ink"
+        ],
+        "configuration": "./language-configuration.json"
+      }
     ],
-    "scripts": {
-        "build": "tsc --target esnext extension.ts"
-    },
-    "main": "./extension.js",
-    "type": "module",
-    "contributes": {
-        "languages": [
-            {
-                "id": "ink",
-                "aliases": [
-                    "Ink",
-                    "ink"
-                ],
-                "extensions": [
-                    ".ink"
-                ],
-                "configuration": "./language-configuration.json"
-            }
-        ],
-        "grammars": [
-            {
-                "language": "ink",
-                "scopeName": "source.ink",
-                "path": "./syntaxes/ink.tmLanguage.json"
-            }
-        ],
-        "commands": [
-            {
-                "command": "ink.generateAudio",
-                "title": "生成语音"
-            },
-            {
-                "command": "ink.generateImage",
-                "title": "生成图片"
-            },
-            {
-                "command": "ink.openCounter",
-                "title": "Ink: Open Counter",
-                "icon": "$(symbol-numeric)"
-            }
-        ],
-        "menus": {
-            "editor/context": [
-                {
-                    "command": "ink.generateAudio",
-                    "when": "editorHasSelection && resourceLangId == ink",
-                    "group": "ink@1"
-                },
-                {
-                    "command": "ink.generateImage",
-                    "when": "editorHasSelection && resourceLangId == ink",
-                    "group": "ink@1"
-                }
-            ]
+    "grammars": [
+      {
+        "language": "ink",
+        "scopeName": "source.ink",
+        "path": "./syntaxes/ink.tmLanguage.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "ink.generateAudio",
+        "title": "生成语音"
+      },
+      {
+        "command": "ink.generateImage",
+        "title": "生成图片"
+      },
+      {
+        "command": "ink.openCounter",
+        "title": "Ink: Open Counter",
+        "icon": "$(symbol-numeric)"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "ink.generateAudio",
+          "when": "editorHasSelection && resourceLangId == ink",
+          "group": "ink@1"
         },
-        "viewsContainers": {
-            "activitybar": [
-                {
-                    "id": "ink-sidebar",
-                    "title": "Ink Tools",
-                    "icon": "inky-icon.png"
-                }
-            ]
-        },
-        "views": {
-            "ink-sidebar": [
-                {
-                    "type": "webview",
-                    "id": "ink.counterView",
-                    "name": "Counter"
-                }
-            ]
+        {
+          "command": "ink.generateImage",
+          "when": "editorHasSelection && resourceLangId == ink",
+          "group": "ink@1"
         }
+      ]
     },
-    "dependencies": {
-        "vscode": "^1.1.37",
-        "vscode-languageserver": "^9.0.1",
-        "vscode-languageserver-textdocument": "^1.0.12"
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "ink-sidebar",
+          "title": "Ink Tools",
+          "icon": "inky-icon.png"
+        }
+      ]
     },
-    "devDependencies": {
-        "typescript": "^5.9.3"
+    "views": {
+      "ink-sidebar": [
+        {
+          "type": "webview",
+          "id": "ink.counterView",
+          "name": "Counter"
+        }
+      ]
     }
+  },
+  "dependencies": {
+    "vscode": "^1.1.37",
+    "vscode-languageclient": "^9.0.1",
+    "vscode-languageserver": "^9.0.1",
+    "vscode-languageserver-textdocument": "^1.0.12"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vite": "^8.0.1"
+  }
 }
