@@ -1,3 +1,5 @@
+import * as path from "@std/path";
+
 export const buildStory = async (
     entry_file_path: string,
 ): Promise<StoryAST | Error> => {
@@ -24,31 +26,22 @@ export const buildStoryIncremental = async (
     target_ast: StoryAST,
     entry_file_path: string,
 ): Promise<Error | void> => {
-    const text = await Deno.readTextFile(entry_file_path);
-
-    // Pipeline
-    // Tokenization / Lexing
-    const rawTokens = tokenize(text, entry_file_path);
-    const resolvedTokens = resolveIncludes(
-        rawTokens,
-        new Set([entry_file_path]),
-    );
-    if (resolvedTokens instanceof Error) {
-        return resolvedTokens;
-    }
-
-    // Parsing
-    const ast = parse(resolvedTokens);
+    const ast = await buildStory(entry_file_path);
     if (ast instanceof Error) {
         return ast;
     }
-
     merge_into(target_ast, ast);
 };
 
 ///////////////
 // Tokenizer //
 ///////////////
+export type Location = {
+    line: number;
+    col: number;
+    file: string;
+}
+
 export type TokenType =
     | "KNOT"
     | "STITCH"
@@ -59,15 +52,12 @@ export type TokenType =
     | "TAG"
     | "EOF";
 
-export type Token = {
+export type Token = Location & {
     type: TokenType;
     value: string;
-    line: number;
-    col: number;
-    file: string;
 };
 
-const parseLineToToken = (
+const tokenizeLine = (
     line: string,
     lineNum: number,
     file: string,
@@ -147,7 +137,7 @@ const parseLineToToken = (
 export const tokenize = (input: string, filename: string): Token[] => {
     const lines = input.split("\n");
     const tokens = lines
-        .map((line, idx) => parseLineToToken(line, idx + 1, filename))
+        .map((line, idx) => tokenizeLine(line, idx + 1, filename))
         .filter((t) => t !== null);
 
     return [...tokens, {
@@ -201,75 +191,32 @@ export async function tokenizeAll(
     return tokensMap;
 }
 
-import * as path from "@std/path";
-export const resolveIncludes = (
-    tokens: Token[],
-    visited: Set<string>,
-): Token[] | Error => {
-    if (tokens.length === 0) return [];
-    const [head, ...tail] = tokens;
-
-    if (head.type === "INCLUDE") {
-        const filename = head.value;
-        if (visited.has(filename)) {
-            return new Error(
-                `Compiler Error: Circular INCLUDE detected -> ${filename} at ${head.file}:${head.line}`,
-            );
-        }
-        const dir = path.dirname(Deno.realPathSync(head.file));
-        const included_file_path = path.join(dir, filename);
-        const file_content = Deno.readTextFileSync(included_file_path);
-
-        // Tokenize the included file, strip its EOF, and recurse
-        const includedTokens = tokenize(file_content, included_file_path)
-            .filter((t) => t.type !== "EOF");
-        const resolvedIncluded = resolveIncludes(includedTokens, visited);
-        if (resolvedIncluded instanceof Error) {
-            return resolvedIncluded;
-        }
-
-        const r2 = resolveIncludes(tail, visited);
-        if (r2 instanceof Error) {
-            return r2;
-        }
-
-        return [...resolvedIncluded, ...r2];
-    }
-
-    const r = resolveIncludes(tail, visited);
-    if (r instanceof Error) {
-        return r;
-    }
-
-    return [head, ...r];
-};
-
 ////////////
 // Parser //
 ////////////
-export type TextNode = { type: "Text"; text: string };
-export type DivertNode = { type: "Divert"; target: string };
-export type TagNode = { type: "Tag"; name: string; value: string };
+export type TextNode = Location & { type: "Text"; text: string };
+export type DivertNode = Location & { type: "Divert"; target: string };
+export type TagNode = Location & { type: "Tag"; name: string; value: string };
 export type ContentNode = TextNode | DivertNode | TagNode;
 
-export type OptionNode = {
+export type OptionNode = Location & {
     type: "Option";
     text: string;
     content: ContentNode[];
 };
 
-export type BlockNode = {
+export type BlockNode = Location & {
     content: ContentNode[];
     options: OptionNode[];
 };
 
-export type StitchNode = {
+export type StitchNode = Location & {
     type: "Stitch";
     name: string;
     block: BlockNode;
 };
 
-export type KnotNode = {
+export type KnotNode = Location & {
     type: "Knot";
     name: string;
     block: BlockNode;
