@@ -1,24 +1,23 @@
-export const buildStory = (entry_file_path: string): StoryAST | Error => {
-    const text = Deno.readTextFileSync(entry_file_path);
-
-    // Pipeline
+export const buildStory = async (
+    entry_file_path: string,
+): Promise<StoryAST | Error> => {
     // Tokenization / Lexing
-    const rawTokens = tokenize(text, entry_file_path);
-    const resolvedTokens = resolveIncludes(
-        rawTokens,
-        new Set([entry_file_path]),
-    );
-    if (resolvedTokens instanceof Error) {
-        return resolvedTokens;
-    }
+    const all_tokens = await tokenizeAll(entry_file_path);
+    const all_asts: StoryAST[] = [];
 
-    // Parsing
-    const ast = parse(resolvedTokens);
-    if (ast instanceof Error) {
-        return ast;
+    for (const [_, tokens] of all_tokens) {
+        // Parsing
+        const ast = parse(tokens);
+        if (ast instanceof Error) {
+            return ast;
+        }
+        all_asts.push(ast);
     }
-
-    return ast;
+    const merged_ast = all_asts[0];
+    for (const ast of all_asts.slice(1)) {
+        merge_into(merged_ast, ast);
+    }
+    return merged_ast;
 };
 
 export const buildStoryIncremental = async (
@@ -160,6 +159,48 @@ export const tokenize = (input: string, filename: string): Token[] => {
     }];
 };
 
+/**
+ * 1. tokenize the input file
+ * 2. find all included files in the input file
+ * 3. tokenize included files
+ * 4. return a map of file_path -> tokens
+ * - don't merge tokens of files
+ */
+export async function tokenizeAll(
+    file_path: string,
+): Promise<Map<string, Token[]>> {
+    const tokensMap = new Map<string, Token[]>();
+    const visited = new Set<string>();
+
+    async function processFile(currentPath: string) {
+        // Use realPath to ensure we don't process the same file twice via different relative paths
+        const realPath = await Deno.realPath(currentPath).catch(() =>
+            currentPath
+        );
+
+        if (visited.has(realPath)) return;
+        visited.add(realPath);
+
+        const text = await Deno.readTextFile(realPath);
+        const tokens = tokenize(text, realPath);
+        tokensMap.set(realPath, tokens.filter((t) => t.type != "INCLUDE"));
+
+        // The path import needs to be available in this scope.
+        // (Make sure `import * as path from "@std/path";` is at the top of your file)
+        const dir = path.dirname(realPath);
+        // Find includes and process them recursively
+        for (const token of tokens) {
+            if (token.type === "INCLUDE") {
+                const includedFilePath = path.join(dir, token.value);
+                await processFile(includedFilePath);
+            }
+        }
+    }
+
+    await processFile(file_path);
+    return tokensMap;
+}
+
 import * as path from "@std/path";
 export const resolveIncludes = (
     tokens: Token[],
@@ -238,7 +279,7 @@ export type KnotNode = {
 export type StoryAST = {
     type: "Story";
     block: BlockNode;
-    knots: KnotNode[];
+    knots: Record<string, KnotNode>;
 };
 
 type ParseResult<T> = { value: T; rest: Token[] };
@@ -442,10 +483,17 @@ export const parse = (tokens: Token[]): StoryAST | Error => {
     if (_knots instanceof Error) {
         return _knots;
     }
-    const { value: knots, rest } = _knots;
+    const { value: knotsArray, rest } = _knots;
     if (rest.length > 0 && rest[0].type !== "EOF") {
         return new Error(formatError("Unexpected trailing tokens", rest[0]));
     }
+
+    // Transform the Knot array into a Dictionary/Record mapped by knot name
+    const knots: Record<string, KnotNode> = {};
+    for (const knot of knotsArray) {
+        knots[knot.name] = knot;
+    }
+
     return { type: "Story", block: block.value, knots };
 };
 
@@ -521,12 +569,13 @@ const isBlockEnd = (
 export function merge_into(ast1: StoryAST, ast2: StoryAST): void {
     // 1. Update the root Story block if the new AST has root content
     if (ast2.block.content.length > 0 || ast2.block.options.length > 0) {
-        ast1.block = ast2.block;
+        ast1.block.content = ast1.block.content.concat(ast2.block.content);
+        ast1.block.options = ast1.block.options.concat(ast2.block.options);
     }
 
-    // 2. Merge Knots
-    for (const knot2 of ast2.knots) {
-        const knot1 = ast1.knots.find((k) => k.name === knot2.name);
+    // 2. Merge Knots as a Record
+    for (const [knotName, knot2] of Object.entries(ast2.knots)) {
+        const knot1 = ast1.knots[knotName];
 
         if (knot1) {
             // Name conflict -> Override the existing knot's block
@@ -547,97 +596,53 @@ export function merge_into(ast1: StoryAST, ast2: StoryAST): void {
                 }
             }
         } else {
-            // New Knot -> Add to the story
-            ast1.knots.push(knot2);
+            // New Knot -> Add to the story mapping
+            ast1.knots[knotName] = knot2;
         }
     }
 }
 
 import { assertEquals } from "@std/assert";
 Deno.test("test", async (t) => {
-    {
-        const result = buildStory("../../stories/story1/vars.ink");
-        if (result instanceof Error) {
-            console.error(result);
-        }
-        await Deno.writeTextFile(
-            "./test.json",
-            JSON.stringify(result, null, 2),
-        );
-    }
-    {
-        const result = buildStory("../../stories/story1/world.ink");
-        if (result instanceof Error) {
-            console.error(result);
-        }
-        await Deno.writeTextFile(
-            "./test.json",
-            JSON.stringify(result, null, 2),
-        );
-    }
-
-    await t.step("buildStoryIncremental", async () => {
-        // {
-        //     const result = buildStory("../../stories/story1/vars.ink");
-        //     if (result instanceof Error) {
-        //         return console.error(result);
-        //     }
-        //     const err = await buildStoryIncremental(
-        //         result,
-        //         "../../stories/story1/world.ink",
-        //     );
-        //     if (err instanceof Error) {
-        //         return console.error(err);
-        //     }
-        //     await Deno.writeTextFile(
-        //         "./test.json",
-        //         JSON.stringify(result, null, 2),
-        //     );
-
-        //     const world = buildStory("../../stories/story1/world.ink");
-        //     if (world instanceof Error) {
-        //         return console.error(world);
-        //     }
-        //     assertEquals(world, result);
-        // }
-        // {
-        //     const result = buildStory("../../stories/story1/world.ink");
-        //     if (result instanceof Error) {
-        //         return console.error(result);
-        //     }
-        //     const err = await buildStoryIncremental(
-        //         result,
-        //         "../../stories/story1/vars.ink",
-        //     );
-        //     if (err instanceof Error) {
-        //         return console.error(err);
-        //     }
-
-
-        //     const world = buildStory("../../stories/story1/world.ink");
-        //     if (world instanceof Error) {
-        //         return console.error(world);
-        //     }
-        //     assertEquals(world, result);
-        // }
-        
-    });
-    await t.step("buildStoryIncremental merge vs include", async () => {
-            const result = buildStory("testdata/2.ink");
+    await t.step("buildStory_v2", async () => {
+        {
+            const result = await buildStory("../../stories/story1/vars.ink");
             if (result instanceof Error) {
-                return console.error(result);
+                console.error(result);
             }
-            const err = await buildStoryIncremental(
-                result,
-                "testdata/1.ink",
+            await Deno.writeTextFile(
+                "./test.json",
+                JSON.stringify(result, null, 2),
             );
-            if (err instanceof Error) {
-                return console.error(err);
+        }
+        {
+            const result = await buildStory("../../stories/story1/world.ink");
+            if (result instanceof Error) {
+                console.error(result);
             }
-            const world = buildStory("testdata/all.ink");
-            if (world instanceof Error) {
-                return console.error(world);
-            }
-            assertEquals(world, result);
-        });
+            await Deno.writeTextFile(
+                "./test.json",
+                JSON.stringify(result, null, 2),
+            );
+        }
+    });
+
+    await t.step("buildStoryIncremental merge vs include", async () => {
+        const result = await buildStory("testdata/1.ink");
+        if (result instanceof Error) {
+            return console.error(result);
+        }
+        const err = await buildStoryIncremental(
+            result,
+            "testdata/2.ink",
+        );
+        if (err instanceof Error) {
+            return console.error(err);
+        }
+        const world = await buildStory("testdata/all.ink");
+        if (world instanceof Error) {
+            return console.error(world);
+        }
+        assertEquals(world, result);
+    });
 });
