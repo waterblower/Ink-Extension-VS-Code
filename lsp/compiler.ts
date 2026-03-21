@@ -205,45 +205,53 @@ export type OptionNode = Location & {
     content: ContentNode[];
 };
 
-export type BlockNode = Location & {
-    content: ContentNode[];
-    options: OptionNode[];
-};
-
 export type StitchNode = Location & {
     type: "Stitch";
     name: string;
-    block: BlockNode;
+    content: ContentNode[];
+    options: OptionNode[];
 };
 
 export type KnotNode = Location & {
     type: "Knot";
     name: string;
-    block: BlockNode;
+    content: ContentNode[];
+    options: OptionNode[];
     stitches: StitchNode[];
 };
 
 export type StoryAST = {
     type: "Story";
-    block: BlockNode;
+    content: ContentNode[];
+    options: OptionNode[];
     knots: Record<string, KnotNode>;
 };
 
 type ParseResult<T> = { value: T; rest: Token[] };
 
+// Helper to grab location safely
+const getLoc = (token: Token | undefined): Location => {
+    if (token) {
+        return { line: token.line, col: token.col, file: token.file };
+    }
+    return { line: 0, col: 0, file: "unknown" };
+};
+
 const parseContentNode = (
     tokens: Token[],
 ): ParseResult<ContentNode> | Error => {
     const head = tokens[0];
+    const loc = getLoc(head);
+
     if (head.type === "TEXT") {
         return {
-            value: { type: "Text", text: head.value },
+            value: { type: "Text", text: head.value, ...loc },
             rest: tokens.slice(1),
         };
     }
     if (head.type === "DIVERT") {
         return {
-            value: { type: "Divert", target: head.value },
+            value: { type: "Divert", target: head.value, ...loc },
             rest: tokens.slice(1),
         };
     }
@@ -255,6 +263,7 @@ const parseContentNode = (
                 type: "Tag",
                 name: name.trim(),
                 value: value.trim(),
+                ...loc
             },
         };
     }
@@ -265,11 +274,13 @@ const parseContentNode_v2 = (
     token: Token,
 ): ContentNode | Error => {
     const head = token;
+    const loc = getLoc(head);
+
     if (head.type === "TEXT") {
-        return { type: "Text", text: head.value };
+        return { type: "Text", text: head.value, ...loc };
     }
     if (head.type === "DIVERT") {
-        return { type: "Divert", target: head.value };
+        return { type: "Divert", target: head.value, ...loc };
     }
     if (head.type == "TAG") {
         const [name, value] = head.value.split(":");
@@ -277,6 +288,7 @@ const parseContentNode_v2 = (
             type: "Tag",
             name: name.trim(),
             value: value.trim(),
+            ...loc
         };
     }
     return new Error(formatError("Unexpected token in content", head));
@@ -314,6 +326,7 @@ const parseOptions = (
     }
 
     const head = tokens[0];
+    const loc = getLoc(head);
     const block_content = parseBlockContent(tokens.slice(1), "OPTION");
     if (block_content instanceof Error) {
         return block_content;
@@ -323,6 +336,7 @@ const parseOptions = (
         type: "Option",
         text: head.value,
         content,
+        ...loc
     };
 
     const next = parseOptions(afterContent);
@@ -335,7 +349,7 @@ const parseOptions = (
 const parseBlock = (
     tokens: Token[],
     context: "KNOT" | "STITCH",
-): ParseResult<BlockNode> | Error => {
+) => {
     const block_content = parseBlockContent(tokens, context);
     if (block_content instanceof Error) {
         return block_content;
@@ -347,10 +361,8 @@ const parseBlock = (
         return options;
     }
     return {
-        value: {
-            content,
-            options: options.value,
-        },
+        content,
+        options: options.value,
         rest: options.rest,
     };
 };
@@ -363,15 +375,16 @@ const parseStitches = (
     }
 
     const head = tokens[0];
-    const content_block = parseBlock(
+    const loc = getLoc(head);
+    const block = parseBlock(
         tokens.slice(1),
         "STITCH",
     );
-    if (content_block instanceof Error) {
-        return content_block;
+    if (block instanceof Error) {
+        return block;
     }
-    const { value: block, rest: afterBlock } = content_block;
-    const stitchNode: StitchNode = { type: "Stitch", name: head.value, block };
+    const { content, options, rest: afterBlock } = block;
+    const stitchNode: StitchNode = { type: "Stitch", name: head.value, content, options, ...loc };
 
     const next = parseStitches(afterBlock);
     if (next instanceof Error) {
@@ -388,18 +401,19 @@ const parseKnots = (
     }
 
     const head = tokens[0];
+    const loc = getLoc(head);
     if (head.type !== "KNOT") {
         return new Error(formatError("Expected Knot declaration", head));
     }
 
-    const block_content = parseBlock(
+    const block = parseBlock(
         tokens.slice(1),
         "KNOT",
     );
-    if (block_content instanceof Error) {
-        return block_content;
+    if (block instanceof Error) {
+        return block;
     }
-    const { value: block, rest: afterBlock } = block_content;
+    const { content, options, rest: afterBlock } = block;
 
     const stitches = parseStitches(afterBlock);
     if (stitches instanceof Error) {
@@ -410,8 +424,10 @@ const parseKnots = (
     const knotNode: KnotNode = {
         type: "Knot",
         name: head.value,
-        block,
+        content,
+        options,
         stitches: value,
+        ...loc
     };
 
     const next = parseKnots(stitches.rest);
@@ -422,11 +438,17 @@ const parseKnots = (
 };
 
 export const parse = (tokens: Token[]): StoryAST | Error => {
-    const block = parseBlock_V2(tokens);
-    if (block instanceof Error) {
-        return block;
+    const contents = parseContents_V2(tokens);
+    if (contents instanceof Error) {
+        return contents;
     }
-    const _knots = parseKnots(block.rest);
+
+    const options = parseOptions(contents.rest);
+    if (options instanceof Error) {
+        return options;
+    }
+
+    const _knots = parseKnots(options.rest);
     if (_knots instanceof Error) {
         return _knots;
     }
@@ -441,31 +463,11 @@ export const parse = (tokens: Token[]): StoryAST | Error => {
         knots[knot.name] = knot;
     }
 
-    return { type: "Story", block: block.value, knots };
+    return { type: "Story", content: contents.value, options: options.value, knots };
 };
 
-const parseBlock_V2 = (
-    tokens: Token[],
-): ParseResult<BlockNode> | Error => {
-    const block_content = parseBlockContent_V2(tokens);
-    if (block_content instanceof Error) {
-        return block_content;
-    }
-    const { value: content, rest: afterContent } = block_content;
 
-    const options = parseOptions(afterContent);
-    if (options instanceof Error) {
-        return options;
-    }
-    return {
-        value: {
-            content,
-            options: options.value,
-        },
-        rest: options.rest,
-    };
-};
-const parseBlockContent_V2 = (
+const parseContents_V2 = (
     tokens: Token[],
 ): ParseResult<ContentNode[]> | Error => {
     if (tokens.length === 0) {
@@ -515,9 +517,9 @@ const isBlockEnd = (
  */
 export function merge_into(ast1: StoryAST, ast2: StoryAST): void {
     // 1. Update the root Story block if the new AST has root content
-    if (ast2.block.content.length > 0 || ast2.block.options.length > 0) {
-        ast1.block.content = ast1.block.content.concat(ast2.block.content);
-        ast1.block.options = ast1.block.options.concat(ast2.block.options);
+    if (ast2.content.length > 0 || ast2.options.length > 0) {
+        ast1.content = ast1.content.concat(ast2.content);
+        ast1.options = ast1.options.concat(ast2.options);
     }
 
     // 2. Merge Knots as a Record
@@ -526,7 +528,8 @@ export function merge_into(ast1: StoryAST, ast2: StoryAST): void {
 
         if (knot1) {
             // Name conflict -> Override the existing knot's block
-            knot1.block = knot2.block;
+            knot1.content = knot2.content;
+            knot1.options = knot2.options;
 
             // 3. Merge Stitches within the updated Knot
             for (const stitch2 of knot2.stitches) {
@@ -536,7 +539,8 @@ export function merge_into(ast1: StoryAST, ast2: StoryAST): void {
 
                 if (stitch1) {
                     // Name conflict -> Override the existing stitch's block
-                    stitch1.block = stitch2.block;
+                    stitch1.content = stitch2.content;
+                    stitch1.options = stitch2.options;
                 } else {
                     // New Stitch -> Add to the existing knot
                     knot1.stitches.push(stitch2);
