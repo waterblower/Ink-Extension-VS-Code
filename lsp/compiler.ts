@@ -21,6 +21,32 @@ export const buildStory = (entry_file_path: string): StoryAST | Error => {
     return ast;
 };
 
+export const buildStoryIncremental = async (
+    target_ast: StoryAST,
+    entry_file_path: string,
+): Promise<Error | void> => {
+    const text = await Deno.readTextFile(entry_file_path);
+
+    // Pipeline
+    // Tokenization / Lexing
+    const rawTokens = tokenize(text, entry_file_path);
+    const resolvedTokens = resolveIncludes(
+        rawTokens,
+        new Set([entry_file_path]),
+    );
+    if (resolvedTokens instanceof Error) {
+        return resolvedTokens;
+    }
+
+    // Parsing
+    const ast = parse(resolvedTokens);
+    if (ast instanceof Error) {
+        return ast;
+    }
+
+    merge_into(target_ast, ast);
+};
+
 ///////////////
 // Tokenizer //
 ///////////////
@@ -486,7 +512,49 @@ const isBlockEnd = (
     return false;
 };
 
-Deno.test("test", async () => {
+/**
+ * merge ast2 into ast1 so that ast1 will be modified.
+ * ast2 might contain new nodes or updated content of existing nodes
+ * when merging ast2 into ast1, override ast1 when there are name conflicts
+ * because conflicts means updates
+ */
+export function merge_into(ast1: StoryAST, ast2: StoryAST): void {
+    // 1. Update the root Story block if the new AST has root content
+    if (ast2.block.content.length > 0 || ast2.block.options.length > 0) {
+        ast1.block = ast2.block;
+    }
+
+    // 2. Merge Knots
+    for (const knot2 of ast2.knots) {
+        const knot1 = ast1.knots.find((k) => k.name === knot2.name);
+
+        if (knot1) {
+            // Name conflict -> Override the existing knot's block
+            knot1.block = knot2.block;
+
+            // 3. Merge Stitches within the updated Knot
+            for (const stitch2 of knot2.stitches) {
+                const stitch1 = knot1.stitches.find((s) =>
+                    s.name === stitch2.name
+                );
+
+                if (stitch1) {
+                    // Name conflict -> Override the existing stitch's block
+                    stitch1.block = stitch2.block;
+                } else {
+                    // New Stitch -> Add to the existing knot
+                    knot1.stitches.push(stitch2);
+                }
+            }
+        } else {
+            // New Knot -> Add to the story
+            ast1.knots.push(knot2);
+        }
+    }
+}
+
+import { assertEquals } from "@std/assert";
+Deno.test("test", async (t) => {
     {
         const result = buildStory("../../stories/story1/vars.ink");
         if (result instanceof Error) {
@@ -507,4 +575,69 @@ Deno.test("test", async () => {
             JSON.stringify(result, null, 2),
         );
     }
+
+    await t.step("buildStoryIncremental", async () => {
+        // {
+        //     const result = buildStory("../../stories/story1/vars.ink");
+        //     if (result instanceof Error) {
+        //         return console.error(result);
+        //     }
+        //     const err = await buildStoryIncremental(
+        //         result,
+        //         "../../stories/story1/world.ink",
+        //     );
+        //     if (err instanceof Error) {
+        //         return console.error(err);
+        //     }
+        //     await Deno.writeTextFile(
+        //         "./test.json",
+        //         JSON.stringify(result, null, 2),
+        //     );
+
+        //     const world = buildStory("../../stories/story1/world.ink");
+        //     if (world instanceof Error) {
+        //         return console.error(world);
+        //     }
+        //     assertEquals(world, result);
+        // }
+        // {
+        //     const result = buildStory("../../stories/story1/world.ink");
+        //     if (result instanceof Error) {
+        //         return console.error(result);
+        //     }
+        //     const err = await buildStoryIncremental(
+        //         result,
+        //         "../../stories/story1/vars.ink",
+        //     );
+        //     if (err instanceof Error) {
+        //         return console.error(err);
+        //     }
+
+
+        //     const world = buildStory("../../stories/story1/world.ink");
+        //     if (world instanceof Error) {
+        //         return console.error(world);
+        //     }
+        //     assertEquals(world, result);
+        // }
+        
+    });
+    await t.step("buildStoryIncremental merge vs include", async () => {
+            const result = buildStory("testdata/2.ink");
+            if (result instanceof Error) {
+                return console.error(result);
+            }
+            const err = await buildStoryIncremental(
+                result,
+                "testdata/1.ink",
+            );
+            if (err instanceof Error) {
+                return console.error(err);
+            }
+            const world = buildStory("testdata/all.ink");
+            if (world instanceof Error) {
+                return console.error(world);
+            }
+            assertEquals(world, result);
+        });
 });

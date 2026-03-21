@@ -1,0 +1,2 @@
+INCLUDE 1.ink
+INCLUDE 2.ink
