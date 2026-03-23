@@ -163,21 +163,18 @@ export async function tokenizeAll(
     const visited = new Set<string>();
 
     async function processFile(currentPath: string) {
-        // Use realPath to ensure we don't process the same file twice via different relative paths
-        const realPath = await Deno.realPath(currentPath).catch(() =>
-            currentPath
-        );
 
-        if (visited.has(realPath)) return;
-        visited.add(realPath);
 
-        const text = await Deno.readTextFile(realPath);
-        const tokens = tokenize(text, realPath);
-        tokensMap.set(realPath, tokens.filter((t) => t.type != "INCLUDE"));
+        if (visited.has(currentPath)) return;
+        visited.add(currentPath);
+
+        const text = await readTextFile(currentPath);
+        const tokens = tokenize(text, currentPath);
+        tokensMap.set(currentPath, tokens.filter((t) => t.type != "INCLUDE"));
 
         // The path import needs to be available in this scope.
         // (Make sure `import * as path from "@std/path";` is at the top of your file)
-        const dir = path.dirname(realPath);
+        const dir = path.dirname(currentPath);
         // Find includes and process them recursively
         for (const token of tokens) {
             if (token.type === "INCLUDE") {
@@ -187,7 +184,7 @@ export async function tokenizeAll(
         }
     }
 
-    await processFile(file_path);
+    await processFile(path.resolve(file_path));
     return tokensMap;
 }
 
@@ -638,4 +635,10 @@ export function find_node_at_position(
     }
 
     return null;
+}
+
+import fs from "node:fs";
+async function readTextFile(path: string): Promise<string> {
+    const content = await fs.promises.readFile(path, "utf-8")
+    return content;
 }
