@@ -40,7 +40,7 @@ export type Location = {
     line: number;
     col: number;
     file: string;
-}
+};
 
 export type TokenType =
     | "KNOT"
@@ -57,7 +57,7 @@ export type Token = Location & {
     value: string;
 };
 
-const tokenizeLine = (
+export const tokenizeLine = (
     line: string,
     lineNum: number,
     file: string,
@@ -137,7 +137,7 @@ const tokenizeLine = (
 export const tokenize = (input: string, filename: string): Token[] => {
     const lines = input.split("\n");
     const tokens = lines
-        .map((line, idx) => tokenizeLine(line, idx + 1, filename))
+        .map((line, idx) => tokenizeLine(line, idx, filename))
         .filter((t) => t !== null);
 
     return [...tokens, {
@@ -194,6 +194,13 @@ export async function tokenizeAll(
 ////////////
 // Parser //
 ////////////
+export type StoryAST = {
+    type: "Story";
+    content: ContentNode[];
+    options: OptionNode[];
+    knots: Record<string, KnotNode>;
+};
+
 export type TextNode = Location & { type: "Text"; text: string };
 export type DivertNode = Location & { type: "Divert"; target: string };
 export type TagNode = Location & { type: "Tag"; name: string; value: string };
@@ -218,13 +225,6 @@ export type KnotNode = Location & {
     content: ContentNode[];
     options: OptionNode[];
     stitches: StitchNode[];
-};
-
-export type StoryAST = {
-    type: "Story";
-    content: ContentNode[];
-    options: OptionNode[];
-    knots: Record<string, KnotNode>;
 };
 
 type ParseResult<T> = { value: T; rest: Token[] };
@@ -263,7 +263,7 @@ const parseContentNode = (
                 type: "Tag",
                 name: name.trim(),
                 value: value.trim(),
-                ...loc
+                ...loc,
             },
         };
     }
@@ -288,7 +288,7 @@ const parseContentNode_v2 = (
             type: "Tag",
             name: name.trim(),
             value: value.trim(),
-            ...loc
+            ...loc,
         };
     }
     return new Error(formatError("Unexpected token in content", head));
@@ -336,7 +336,7 @@ const parseOptions = (
         type: "Option",
         text: head.value,
         content,
-        ...loc
+        ...loc,
     };
 
     const next = parseOptions(afterContent);
@@ -384,7 +384,13 @@ const parseStitches = (
         return block;
     }
     const { content, options, rest: afterBlock } = block;
-    const stitchNode: StitchNode = { type: "Stitch", name: head.value, content, options, ...loc };
+    const stitchNode: StitchNode = {
+        type: "Stitch",
+        name: head.value,
+        content,
+        options,
+        ...loc,
+    };
 
     const next = parseStitches(afterBlock);
     if (next instanceof Error) {
@@ -427,7 +433,7 @@ const parseKnots = (
         content,
         options,
         stitches: value,
-        ...loc
+        ...loc,
     };
 
     const next = parseKnots(stitches.rest);
@@ -463,9 +469,13 @@ export const parse = (tokens: Token[]): StoryAST | Error => {
         knots[knot.name] = knot;
     }
 
-    return { type: "Story", content: contents.value, options: options.value, knots };
+    return {
+        type: "Story",
+        content: contents.value,
+        options: options.value,
+        knots,
+    };
 };
-
 
 const parseContents_V2 = (
     tokens: Token[],
@@ -553,47 +563,79 @@ export function merge_into(ast1: StoryAST, ast2: StoryAST): void {
     }
 }
 
-import { assertEquals } from "@std/assert";
-Deno.test("test", async (t) => {
-    await t.step("buildStory_v2", async () => {
-        {
-            const result = await buildStory("../../stories/story1/vars.ink");
-            if (result instanceof Error) {
-                console.error(result);
-            }
-            await Deno.writeTextFile(
-                "./test.json",
-                JSON.stringify(result, null, 2),
-            );
-        }
-        {
-            const result = await buildStory("../../stories/story1/world.ink");
-            if (result instanceof Error) {
-                console.error(result);
-            }
-            await Deno.writeTextFile(
-                "./test.json",
-                JSON.stringify(result, null, 2),
-            );
-        }
-    });
+// A union type of all AST nodes that have a 'Location' (file, line, col)
+type SearchableNode = ContentNode | OptionNode | KnotNode | StitchNode;
 
-    await t.step("buildStoryIncremental merge vs include", async () => {
-        const result = await buildStory("testdata/1.ink");
-        if (result instanceof Error) {
-            return console.error(result);
+// ------------------------------------------------------------------
+// AST Traversal Helper
+// ------------------------------------------------------------------
+export function find_node_at_position(
+    storyAST: StoryAST,
+    filePath: string,
+    targetLine: number,
+): SearchableNode | null {
+    console.log("find_node_at_position", filePath, targetLine);
+    function search(node: SearchableNode): SearchableNode | null {
+        // Traverse children first to return the most specific child node on a line
+        switch (node.type) {
+            case "Knot":
+                for (const child of node.content) {
+                    const found = search(child);
+                    if (found) return found;
+                }
+                for (const option of node.options) {
+                    const found = search(option);
+                    if (found) return found;
+                }
+                for (const stitch of node.stitches) {
+                    const found = search(stitch);
+                    if (found) return found;
+                }
+                break;
+            case "Stitch":
+                for (const child of node.content) {
+                    const found = search(child);
+                    if (found) return found;
+                }
+                for (const option of node.options) {
+                    const found = search(option);
+                    if (found) return found;
+                }
+                break;
+            case "Option":
+                for (const child of node.content) {
+                    const found = search(child);
+                    if (found) return found;
+                }
+                break;
+            case "Text":
+            case "Divert":
+            case "Tag":
+                // These nodes have no children to traverse
+                break;
         }
-        const err = await buildStoryIncremental(
-            result,
-            "testdata/2.ink",
-        );
-        if (err instanceof Error) {
-            return console.error(err);
+
+        // Check the node itself after checking children
+        // console.log(path.resolve(node.file), path.resolve(filePath))
+        if (node.file == filePath && node.line === targetLine) {
+            return node;
         }
-        const world = await buildStory("testdata/all.ink");
-        if (world instanceof Error) {
-            return console.error(world);
-        }
-        assertEquals(world, result);
-    });
-});
+
+        return null;
+    }
+
+    for (const child of storyAST.content) {
+        const found = search(child);
+        if (found) return found;
+    }
+    for (const option of storyAST.options) {
+        const found = search(option);
+        if (found) return found;
+    }
+    for (const knot of Object.values(storyAST.knots)) {
+        const found = search(knot);
+        if (found) return found;
+    }
+
+    return null;
+}
