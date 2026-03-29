@@ -163,8 +163,6 @@ export async function tokenizeAll(
     const visited = new Set<string>();
 
     async function processFile(currentPath: string) {
-
-
         if (visited.has(currentPath)) return;
         visited.add(currentPath);
 
@@ -639,6 +637,6 @@ export function find_node_at_position(
 
 import fs from "node:fs";
 async function readTextFile(path: string): Promise<string> {
-    const content = await fs.promises.readFile(path, "utf-8")
+    const content = await fs.promises.readFile(path, "utf-8");
     return content;
 }
