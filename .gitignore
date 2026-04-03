@@ -2,3 +2,6 @@ test.json
 *node_modules*
 *.exe
 extension/compiler.js
+.DS_Store
+*.vsix
+.note

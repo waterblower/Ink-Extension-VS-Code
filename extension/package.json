@@ -1,10 +1,10 @@
 {
-    "name": "ink-lang",
-    "displayName": "Ink Language",
+    "name": "inkup",
+    "displayName": "Inkup: yet another Ink language support and more things",
     "description": "Syntax highlighting for inkle's Ink scripting language (.ink files)",
     "version": "0.2.0",
     "publisher": "water2077",
-    "icon": "inky-icon.png",
+    "icon": "icon-small.jpg",
     "engines": {
         "vscode": "^1.0.0"
     },
@@ -15,6 +15,9 @@
         "Programming Languages"
     ],
     "main": "./extension.js",
+    "activationEvents": [
+        "onLanguage:ink"
+    ],
     "contributes": {
         "languages": [
             {
@@ -44,11 +47,6 @@
             {
                 "command": "ink.generateImage",
                 "title": "生成图片"
-            },
-            {
-                "command": "ink.openCounter",
-                "title": "Ink: Open Counter",
-                "icon": "$(symbol-numeric)"
             }
         ],
         "menus": {
@@ -66,13 +64,7 @@
             ]
         },
         "viewsContainers": {
-            "activitybar": [
-                {
-                    "id": "ink-sidebar",
-                    "title": "Ink Tools",
-                    "icon": "inky-icon.png"
-                }
-            ]
+            "activitybar": []
         },
         "views": {
             "ink-sidebar": [
