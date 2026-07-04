@@ -2,6 +2,7 @@ test.json
 *node_modules*
 *.exe
 extension/compiler.js
+extension/dist/
 .DS_Store
 *.vsix
 .note

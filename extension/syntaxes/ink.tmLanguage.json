@@ -5,7 +5,9 @@
     "fileTypes": ["ink"],
     "patterns": [
         { "include": "#comment" },
+        { "include": "#todo" },
         { "include": "#include_directive" },
+        { "include": "#external_declaration" },
         { "include": "#knot_declaration" },
         { "include": "#stitch_declaration" },
         { "include": "#label_declaration" },
@@ -41,6 +43,23 @@
             ]
         },
 
+        "todo": {
+            "name": "comment.line.todo.ink",
+            "match": "^\\s*(TODO)(:.*)$",
+            "captures": {
+                "1": { "name": "keyword.other.todo.ink" }
+            }
+        },
+
+        "external_declaration": {
+            "name": "meta.declaration.external.ink",
+            "match": "^\\s*(EXTERNAL)\\s+([a-zA-Z_][\\w]*)",
+            "captures": {
+                "1": { "name": "storage.type.external.ink" },
+                "2": { "name": "entity.name.function.external.ink" }
+            }
+        },
+
         "include_directive": {
             "name": "meta.preprocessor.include.ink",
             "match": "^(INCLUDE)\\s+(.+)$",
@@ -52,20 +71,23 @@
 
         "knot_declaration": {
             "name": "meta.knot.ink",
-            "match": "^(={2,})\\s*([a-zA-Z_][\\w]*)\\s*(={2,})?\\s*$",
+            "match": "^(={2,})\\s*(function\\s+)?([a-zA-Z_][\\w]*)\\s*(\\([^)]*\\))?\\s*(={2,})?\\s*$",
             "captures": {
                 "1": { "name": "punctuation.definition.knot.begin.ink" },
-                "2": { "name": "entity.name.function.knot.ink" },
-                "3": { "name": "punctuation.definition.knot.end.ink" }
+                "2": { "name": "storage.type.function.ink" },
+                "3": { "name": "entity.name.function.knot.ink" },
+                "4": { "name": "variable.parameter.ink" },
+                "5": { "name": "punctuation.definition.knot.end.ink" }
             }
         },
 
         "stitch_declaration": {
             "name": "meta.stitch.ink",
-            "match": "^(={1})\\s*([a-zA-Z_][\\w]*)\\s*$",
+            "match": "^(={1})\\s*([a-zA-Z_][\\w]*)\\s*(\\([^)]*\\))?\\s*$",
             "captures": {
                 "1": { "name": "punctuation.definition.stitch.ink" },
-                "2": { "name": "entity.name.function.stitch.ink" }
+                "2": { "name": "entity.name.function.stitch.ink" },
+                "3": { "name": "variable.parameter.ink" }
             }
         },
 
@@ -80,6 +102,13 @@
 
         "divert": {
             "patterns": [
+                {
+                    "name": "meta.divert.tunnel-return.ink",
+                    "match": "->->",
+                    "captures": {
+                        "0": { "name": "keyword.control.flow.tunnel-return.ink" }
+                    }
+                },
                 {
                     "name": "meta.divert.end.ink",
                     "match": "->\\s*(END|DONE)\\b",
@@ -96,11 +125,16 @@
                     }
                 },
                 {
-                    "name": "meta.divert.tunnel-return.ink",
-                    "match": "<-",
+                    "name": "meta.thread.ink",
+                    "match": "(<-)\\s*([a-zA-Z_][\\w.]*)?",
                     "captures": {
-                        "0": { "name": "keyword.operator.divert.return.ink" }
+                        "1": { "name": "keyword.operator.thread.ink" },
+                        "2": { "name": "variable.other.divert-target.ink" }
                     }
+                },
+                {
+                    "name": "keyword.operator.glue.ink",
+                    "match": "<>"
                 }
             ]
         },
@@ -253,6 +287,10 @@
         "expression": {
             "patterns": [
                 { "include": "#comment" },
+                {
+                    "name": "storage.type.temp.ink",
+                    "match": "\\b(temp|return)\\b"
+                },
                 { "include": "#string_literal" },
                 { "include": "#number_literal" },
                 { "include": "#boolean_literal" },

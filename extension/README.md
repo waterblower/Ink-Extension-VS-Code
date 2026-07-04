@@ -10,6 +10,27 @@ navigation, and inline image previews.
 
 ## ✨ Features
 
+### 🧪 Real Compiler Diagnostics
+
+Errors, warnings and `TODO:` notes come from the actual Ink compiler
+([inkjs](https://github.com/y-lohse/inkjs), the official JavaScript port — no
+C# toolchain required). The whole project is recompiled from its root file as
+you type, so problems in any `INCLUDE`d file show up on the right file and
+line: bad divert targets, syntax errors, missing includes, unused variables
+and more.
+
+### 🧹 Document Formatting
+
+`Format Document` (`Shift+Alt+F` / `Shift+Option+F`) normalizes structure
+without ever touching your prose:
+
+- `==intro` becomes `=== intro ===`
+- Choices and gathers are indented by weave depth (`* * nested` one level in)
+- Content under a choice is indented; gathers pull the flow back out
+- `~` logic and `VAR`/`CONST`/`LIST`/`INCLUDE` spacing is normalized
+- Trailing whitespace is removed; multi-line `{ … }` logic blocks are left
+  exactly as you wrote them
+
 ### 🎨 Comprehensive Syntax Highlighting
 
 Enjoy a beautifully colorized coding experience. The included TextMate grammar
