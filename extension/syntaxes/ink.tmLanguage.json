@@ -106,7 +106,9 @@
                     "name": "meta.divert.tunnel-return.ink",
                     "match": "->->",
                     "captures": {
-                        "0": { "name": "keyword.control.flow.tunnel-return.ink" }
+                        "0": {
+                            "name": "keyword.control.flow.tunnel-return.ink"
+                        }
                     }
                 },
                 {
@@ -181,7 +183,7 @@
                 "1": { "name": "storage.type.var.ink" },
                 "2": { "name": "variable.other.ink" },
                 "3": { "name": "keyword.operator.assignment.ink" },
-                "4": { "include": "#expression" }
+                "4": { "patterns": [{ "include": "#expression" }] }
             }
         },
 
@@ -203,7 +205,7 @@
                 "1": { "name": "storage.type.const.ink" },
                 "2": { "name": "variable.other.constant.ink" },
                 "3": { "name": "keyword.operator.assignment.ink" },
-                "4": { "include": "#expression" }
+                "4": { "patterns": [{ "include": "#expression" }] }
             }
         },
 
@@ -214,7 +216,7 @@
                 "1": { "name": "storage.type.temp.ink" },
                 "2": { "name": "variable.other.temp.ink" },
                 "3": { "name": "keyword.operator.assignment.ink" },
-                "4": { "include": "#expression" }
+                "4": { "patterns": [{ "include": "#expression" }] }
             }
         },
 

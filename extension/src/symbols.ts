@@ -1,7 +1,7 @@
 // Outline view (knots, stitches, variables) and folding ranges.
 
 import * as vscode from "vscode";
-import { KNOT_RE, STITCH_RE } from "./syntax";
+import { KNOT_RE, STITCH_RE } from "./syntax.ts";
 
 const VAR_RE = /^(?:VAR|CONST|LIST)\s+([a-zA-Z_]\w*)/;
 
@@ -95,7 +95,9 @@ export const foldingProvider: vscode.FoldingRangeProvider = {
             // A stitch is closed by any following header; a knot only by
             // the next knot.
             for (let j = i + 1; j < headers.length; j++) {
-                if (headers[i].kind === "stitch" || headers[j].kind === "knot") {
+                if (
+                    headers[i].kind === "stitch" || headers[j].kind === "knot"
+                ) {
                     end = headers[j].line - 1;
                     break;
                 }

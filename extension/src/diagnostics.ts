@@ -3,8 +3,8 @@
 // warnings and TODOs as diagnostics on the right files and lines.
 
 import * as vscode from "vscode";
-import { compileInk, InkIssue } from "./compile";
-import { collectInkFiles, findRootInkFile, readInkFile } from "./project";
+import { compileInk, InkIssue } from "./compile.ts";
+import { collectInkFiles, findRootInkFile, readInkFile } from "./project.ts";
 
 const DEBOUNCE_MS = 400;
 
@@ -20,8 +20,9 @@ const toSeverity = (issue: InkIssue): vscode.DiagnosticSeverity => {
 };
 
 export class InkDiagnostics {
-    private readonly collection =
-        vscode.languages.createDiagnosticCollection("ink");
+    private readonly collection = vscode.languages.createDiagnosticCollection(
+        "ink",
+    );
     private timer: ReturnType<typeof setTimeout> | undefined;
 
     register(context: vscode.ExtensionContext): void {

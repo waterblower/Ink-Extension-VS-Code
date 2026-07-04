@@ -2,14 +2,14 @@
 // working across every file of the project.
 
 import * as vscode from "vscode";
-import { projectFiles, readLines } from "./project";
+import { projectFiles, readLines } from "./project.ts";
 import {
     isLogicContext,
     LOGIC_KEYWORDS,
     parseDeclaration,
     parseDivertTargets,
     stripLineComment,
-} from "./syntax";
+} from "./syntax.ts";
 
 const WORD_RE = /[a-zA-Z_]\w*/;
 
@@ -183,8 +183,7 @@ export const definitionProvider: vscode.DefinitionProvider = {
         const declaration = findVarDeclaration(info.name, files);
         if (!declaration) return null;
 
-        const onDeclaration =
-            declaration.uri.fsPath === document.fileName &&
+        const onDeclaration = declaration.uri.fsPath === document.fileName &&
             declaration.range.start.line === position.line;
         if (!onDeclaration) return declaration;
 

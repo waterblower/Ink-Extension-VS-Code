@@ -6,7 +6,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as vscode from "vscode";
-import { INCLUDE_RE } from "./syntax";
+import { INCLUDE_RE } from "./syntax.ts";
 
 /**
  * Read a file's current content, preferring an open (possibly unsaved)

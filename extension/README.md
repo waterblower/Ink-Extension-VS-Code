@@ -13,11 +13,10 @@ navigation, and inline image previews.
 ### 🧪 Real Compiler Diagnostics
 
 Errors, warnings and `TODO:` notes come from the actual Ink compiler
-([inkjs](https://github.com/y-lohse/inkjs), the official JavaScript port — no
-C# toolchain required). The whole project is recompiled from its root file as
-you type, so problems in any `INCLUDE`d file show up on the right file and
-line: bad divert targets, syntax errors, missing includes, unused variables
-and more.
+([inkjs](https://github.com/y-lohse/inkjs), the official JavaScript port — no C#
+toolchain required). The whole project is recompiled from its root file as you
+type, so problems in any `INCLUDE`d file show up on the right file and line: bad
+divert targets, syntax errors, missing includes, unused variables and more.
 
 ### 🧹 Document Formatting
 

@@ -1,7 +1,10 @@
 src/**
 node_modules/**
-esbuild.mjs
+build.ts
+deno.json
+deno.lock
 tsconfig.json
 pnpm-lock.yaml
 dist/*.map
 .gitignore
+*.vsix

@@ -25,7 +25,8 @@ export type InkIssue = {
  * where the quoted filename is optional (absent for the root file when no
  * source filename is given) and relative to the root file's directory.
  */
-const ISSUE_RE = /^\s*(?:ERROR|WARNING|TODO):\s*(?:'([^']+)'\s*)?line (\d+):\s*([\s\S]*)$/;
+const ISSUE_RE =
+    /^\s*(?:ERROR|WARNING|TODO):\s*(?:'([^']+)'\s*)?line (\d+):\s*([\s\S]*)$/;
 
 const severityOf = (type: ErrorType): IssueSeverity => {
     switch (type) {
@@ -46,7 +47,12 @@ const parseIssue = (
     const rootDir = path.dirname(rootPath);
     const m = raw.match(ISSUE_RE);
     if (!m) {
-        return { file: rootPath, line: 0, message: raw, severity: severityOf(type) };
+        return {
+            file: rootPath,
+            line: 0,
+            message: raw,
+            severity: severityOf(type),
+        };
     }
     return {
         file: m[1] ? path.resolve(rootDir, m[1]) : rootPath,

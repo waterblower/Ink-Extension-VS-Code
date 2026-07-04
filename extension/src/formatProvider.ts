@@ -2,7 +2,7 @@
 // TextEdit per changed line so undo and cursor behavior stay sane.
 
 import * as vscode from "vscode";
-import { formatInk } from "./format";
+import { formatInk } from "./format.ts";
 
 const indentUnitOf = (options: vscode.FormattingOptions): string => {
     return options.insertSpaces ? " ".repeat(options.tabSize) : "\t";
@@ -42,8 +42,8 @@ export const formattingProvider: vscode.DocumentFormattingEditProvider = {
     },
 };
 
-export const rangeFormattingProvider: vscode.DocumentRangeFormattingEditProvider =
-    {
+export const rangeFormattingProvider:
+    vscode.DocumentRangeFormattingEditProvider = {
         provideDocumentRangeFormattingEdits(document, range, options) {
             return editsFor(document, options, range);
         },

@@ -1,15 +1,18 @@
 import * as vscode from "vscode";
-import { completionProvider } from "./completion";
-import { InkDiagnostics } from "./diagnostics";
-import { formattingProvider, rangeFormattingProvider } from "./formatProvider";
-import { documentHighlightProvider } from "./highlight";
-import { imageHoverProvider, imageLinkProvider } from "./images";
+import { completionProvider } from "./completion.ts";
+import { InkDiagnostics } from "./diagnostics.ts";
+import {
+    formattingProvider,
+    rangeFormattingProvider,
+} from "./formatProvider.ts";
+import { documentHighlightProvider } from "./highlight.ts";
+import { imageHoverProvider, imageLinkProvider } from "./images.ts";
 import {
     definitionProvider,
     hoverProvider,
     referenceProvider,
-} from "./navigation";
-import { foldingProvider, symbolProvider } from "./symbols";
+} from "./navigation.ts";
+import { foldingProvider, symbolProvider } from "./symbols.ts";
 
 export const activate = (context: vscode.ExtensionContext): void => {
     const INK: vscode.DocumentSelector = { language: "ink" };
