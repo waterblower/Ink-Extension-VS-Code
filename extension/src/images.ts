@@ -33,24 +33,52 @@ const findFileRecursive = (dir: string, lowerName: string): string | null => {
 const CACHE_TTL_MS = 5_000;
 const cache = new Map<string, { at: number; result: string | null }>();
 
+const isFile = (p: string): boolean => {
+    try {
+        return fs.statSync(p).isFile();
+    } catch {
+        return false;
+    }
+};
+
 const resolveImagePath = (
     filename: string,
     inkFilePath: string,
 ): string | null => {
-    const cached = cache.get(filename);
+    const inkDir = path.dirname(inkFilePath);
+    const cacheKey = `${inkDir}|${filename}`;
+    const cached = cache.get(cacheKey);
     if (cached && Date.now() - cached.at < CACHE_TTL_MS) return cached.result;
 
-    const searchRoots = (vscode.workspace.workspaceFolders ?? [])
-        .map((f) => f.uri.fsPath);
-    searchRoots.push(path.dirname(inkFilePath));
-
-    let result: string | null = null;
-    for (const root of searchRoots) {
-        result = findFileRecursive(root, filename.toLowerCase());
-        if (result) break;
-    }
-    cache.set(filename, { at: Date.now(), result });
+    const result = doResolve(filename, inkDir);
+    cache.set(cacheKey, { at: Date.now(), result });
     return result;
+};
+
+const doResolve = (filename: string, inkDir: string): string | null => {
+    const workspaceRoots = (vscode.workspace.workspaceFolders ?? [])
+        .map((f) => f.uri.fsPath);
+
+    if (path.isAbsolute(filename)) {
+        return isFile(filename) ? filename : null;
+    }
+
+    // A value with directory components is a path, tried relative to the
+    // ink file first, then to each workspace root.
+    if (filename.includes("/") || filename.includes("\\")) {
+        for (const base of [inkDir, ...workspaceRoots]) {
+            const candidate = path.resolve(base, filename);
+            if (isFile(candidate)) return candidate;
+        }
+        // Fall through: maybe the file moved — search by basename below.
+        filename = path.basename(filename);
+    }
+
+    for (const root of [...workspaceRoots, inkDir]) {
+        const found = findFileRecursive(root, filename.toLowerCase());
+        if (found) return found;
+    }
+    return null;
 };
 
 type ImageTag = { filename: string; startCol: number; endCol: number };
@@ -110,7 +138,7 @@ export const imageLinkProvider: vscode.DocumentLinkProvider = {
                 new vscode.Range(i, tag.startCol, i, tag.endCol),
                 vscode.Uri.file(absPath),
             );
-            link.tooltip = absPath;
+            link.tooltip = "Open image";
             links.push(link);
         }
         return links;
