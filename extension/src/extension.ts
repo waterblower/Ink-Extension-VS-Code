@@ -7,6 +7,7 @@ import {
 } from "./formatProvider.ts";
 import { documentHighlightProvider } from "./highlight.ts";
 import { imageHoverProvider, imageLinkProvider } from "./images.ts";
+import { includeLinkProvider } from "./links.ts";
 import {
     definitionProvider,
     hoverProvider,
@@ -25,6 +26,7 @@ export const activate = (context: vscode.ExtensionContext): void => {
         vscode.languages.registerHoverProvider(INK, hoverProvider),
         vscode.languages.registerHoverProvider(INK, imageHoverProvider),
         vscode.languages.registerDocumentLinkProvider(INK, imageLinkProvider),
+        vscode.languages.registerDocumentLinkProvider(INK, includeLinkProvider),
         vscode.languages.registerDocumentSymbolProvider(INK, symbolProvider),
         vscode.languages.registerFoldingRangeProvider(INK, foldingProvider),
         vscode.languages.registerDocumentFormattingEditProvider(

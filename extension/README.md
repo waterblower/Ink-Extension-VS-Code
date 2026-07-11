@@ -99,3 +99,5 @@ automatically activate and provide syntax highlighting.
   `Ctrl+Space`.
 - **To preview images:** Ensure your images are somewhere in your workspace
   folder, and write an image tag like `# Image: hero_portrait.jpg`.
+
+code --install-extension inkup-0.3.0.vsix

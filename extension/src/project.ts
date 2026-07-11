@@ -30,13 +30,25 @@ export const readLines = (filePath: string): string[] => {
     return text instanceof Error ? [] : text.split(/\r?\n/);
 };
 
-/** INCLUDE targets of one file, resolved against `rootDir`, existing only. */
+/**
+ * INCLUDE targets of one file, resolved like the compiler does: relative
+ * to the including file's directory first, then to `rootDir`. Only
+ * existing files are returned.
+ */
 const directIncludes = (filePath: string, rootDir: string): string[] => {
+    const ownDir = path.dirname(filePath);
     return readLines(filePath)
         .map((line) => line.match(INCLUDE_RE))
         .filter((m) => m !== null)
-        .map((m) => path.resolve(rootDir, m[1].trim()))
-        .filter((p) => fs.existsSync(p));
+        .map((m) => {
+            const target = m[1].trim();
+            for (const base of [ownDir, rootDir]) {
+                const candidate = path.resolve(base, target);
+                if (fs.existsSync(candidate)) return candidate;
+            }
+            return null;
+        })
+        .filter((p) => p !== null);
 };
 
 /** All files reachable from `rootPath` through INCLUDEs, root included. */
@@ -77,7 +89,7 @@ const CACHE_TTL_MS = 5_000;
 const inkFileCache = new Map<string, { at: number; files: string[] }>();
 
 /** All .ink files under the workspace folder of `docPath` (briefly cached). */
-const workspaceInkFiles = (docPath: string): string[] => {
+export const workspaceInkFiles = (docPath: string): string[] => {
     const folder = vscode.workspace.getWorkspaceFolder(
         vscode.Uri.file(docPath),
     );
@@ -113,7 +125,15 @@ export const findRootInkFile = (docPath: string): string => {
     return resolved;
 };
 
-/** Every file of the project that `docPath` belongs to. */
+/**
+ * Every ink file `docPath` can see: the INCLUDE graph of its root first
+ * (so those declarations win when names collide), then every other .ink
+ * file in the workspace — diverts resolve project-wide even before the
+ * target file is wired up with an INCLUDE.
+ */
 export const projectFiles = (docPath: string): string[] => {
-    return [...collectInkFiles(findRootInkFile(docPath))];
+    const graph = collectInkFiles(findRootInkFile(docPath));
+    const rest = workspaceInkFiles(path.resolve(docPath))
+        .filter((f) => !graph.has(f));
+    return [...graph, ...rest];
 };
