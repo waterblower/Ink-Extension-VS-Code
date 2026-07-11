@@ -16,7 +16,7 @@ export const documentHighlightProvider: vscode.DocumentHighlightProvider = {
 
         const wordRange = document.getWordRangeAtPosition(
             position,
-            /[a-zA-Z_]\w*/,
+            /[0-9A-Za-z_]+/,
         );
         if (!wordRange) return [];
 

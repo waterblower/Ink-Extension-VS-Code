@@ -4,6 +4,7 @@
 import * as vscode from "vscode";
 import { projectFiles, readLines } from "./project.ts";
 import {
+    ID_SRC,
     isLogicContext,
     LOGIC_KEYWORDS,
     parseDeclaration,
@@ -11,7 +12,7 @@ import {
     stripLineComment,
 } from "./syntax.ts";
 
-const WORD_RE = /[a-zA-Z_]\w*/;
+const WORD_RE = new RegExp(ID_SRC);
 
 type ContextInfo = {
     type: "declaration" | "divert" | "variable";

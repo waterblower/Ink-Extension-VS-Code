@@ -12,9 +12,8 @@
 // re-indented. Lines inside multi-line `{ … }` logic blocks and block
 // comments are left untouched except for trailing whitespace.
 
-const KNOT_FMT_RE =
-    /^(={2,})\s*(function\s+)?([a-zA-Z_]\w*)\s*(\([^)]*\))?\s*(={2,})?\s*$/;
-const STITCH_FMT_RE = /^=(?!=)\s*([a-zA-Z_]\w*)\s*(\([^)]*\))?\s*$/;
+import { KNOT_RE, STITCH_RE } from "./syntax.ts";
+
 const KEYWORD_RE = /^(INCLUDE|VAR|CONST|LIST|EXTERNAL)\s+(.+)$/;
 
 type Markers = {
@@ -113,7 +112,7 @@ export const formatInk = (lines: string[], indentUnit: string): string[] => {
             continue;
         }
 
-        const knot = trimmed.match(KNOT_FMT_RE);
+        const knot = trimmed.match(KNOT_RE);
         if (knot) {
             const fn = knot[2] ? "function " : "";
             const params = knot[4] ?? "";
@@ -122,7 +121,7 @@ export const formatInk = (lines: string[], indentUnit: string): string[] => {
             continue;
         }
 
-        const stitch = trimmed.match(STITCH_FMT_RE);
+        const stitch = trimmed.match(STITCH_RE);
         if (stitch) {
             result.push(`= ${stitch[1]}${stitch[2] ?? ""}`);
             contentDepth = 0;

@@ -53,7 +53,7 @@
 
         "external_declaration": {
             "name": "meta.declaration.external.ink",
-            "match": "^\\s*(EXTERNAL)\\s+([a-zA-Z_][\\w]*)",
+            "match": "^\\s*(EXTERNAL)\\s+([\\w\\x{3040}-\\x{30FF}\\x{4E00}-\\x{9FFF}\\x{AC00}-\\x{D7AF}]+)",
             "captures": {
                 "1": { "name": "storage.type.external.ink" },
                 "2": { "name": "entity.name.function.external.ink" }
@@ -71,7 +71,7 @@
 
         "knot_declaration": {
             "name": "meta.knot.ink",
-            "match": "^(={2,})\\s*(function\\s+)?([a-zA-Z_][\\w]*)\\s*(\\([^)]*\\))?\\s*(={2,})?\\s*$",
+            "match": "^(={2,})\\s*(function\\s+)?([\\w\\x{3040}-\\x{30FF}\\x{4E00}-\\x{9FFF}\\x{AC00}-\\x{D7AF}]+)\\s*(\\([^)]*\\))?\\s*(={2,})?\\s*$",
             "captures": {
                 "1": { "name": "punctuation.definition.knot.begin.ink" },
                 "2": { "name": "storage.type.function.ink" },
@@ -83,7 +83,7 @@
 
         "stitch_declaration": {
             "name": "meta.stitch.ink",
-            "match": "^(={1})\\s*([a-zA-Z_][\\w]*)\\s*(\\([^)]*\\))?\\s*$",
+            "match": "^(={1})\\s*([\\w\\x{3040}-\\x{30FF}\\x{4E00}-\\x{9FFF}\\x{AC00}-\\x{D7AF}]+)\\s*(\\([^)]*\\))?\\s*$",
             "captures": {
                 "1": { "name": "punctuation.definition.stitch.ink" },
                 "2": { "name": "entity.name.function.stitch.ink" },
@@ -93,7 +93,7 @@
 
         "label_declaration": {
             "name": "meta.label.ink",
-            "match": "^\\s*(\\*+|\\++)\\s*\\(([a-zA-Z_][\\w]*)\\)",
+            "match": "^\\s*(\\*+|\\++)\\s*\\(([\\w\\x{3040}-\\x{30FF}\\x{4E00}-\\x{9FFF}\\x{AC00}-\\x{D7AF}]+)\\)",
             "captures": {
                 "1": { "name": "keyword.operator.choice.ink" },
                 "2": { "name": "entity.name.label.ink" }
@@ -120,7 +120,7 @@
                 },
                 {
                     "name": "meta.divert.ink",
-                    "match": "(->)\\s*([a-zA-Z_][\\w.]*)",
+                    "match": "(->)\\s*([\\w.\\x{3040}-\\x{30FF}\\x{4E00}-\\x{9FFF}\\x{AC00}-\\x{D7AF}]+)",
                     "captures": {
                         "1": { "name": "keyword.operator.divert.ink" },
                         "2": { "name": "variable.other.divert-target.ink" }
@@ -128,7 +128,7 @@
                 },
                 {
                     "name": "meta.thread.ink",
-                    "match": "(<-)\\s*([a-zA-Z_][\\w.]*)?",
+                    "match": "(<-)\\s*([\\w.\\x{3040}-\\x{30FF}\\x{4E00}-\\x{9FFF}\\x{AC00}-\\x{D7AF}]+)?",
                     "captures": {
                         "1": { "name": "keyword.operator.thread.ink" },
                         "2": { "name": "variable.other.divert-target.ink" }
@@ -178,7 +178,7 @@
 
         "var_declaration": {
             "name": "meta.declaration.var.ink",
-            "match": "^\\s*(VAR)\\s+([a-zA-Z_][\\w]*)\\s*(=)\\s*(.+)$",
+            "match": "^\\s*(VAR)\\s+([\\w\\x{3040}-\\x{30FF}\\x{4E00}-\\x{9FFF}\\x{AC00}-\\x{D7AF}]+)\\s*(=)\\s*(.+)$",
             "captures": {
                 "1": { "name": "storage.type.var.ink" },
                 "2": { "name": "variable.other.ink" },
@@ -189,7 +189,7 @@
 
         "list_declaration": {
             "name": "meta.declaration.list.ink",
-            "match": "^\\s*(LIST)\\s+([a-zA-Z_][\\w]*)\\s*(=)\\s*(.+)$",
+            "match": "^\\s*(LIST)\\s+([\\w\\x{3040}-\\x{30FF}\\x{4E00}-\\x{9FFF}\\x{AC00}-\\x{D7AF}]+)\\s*(=)\\s*(.+)$",
             "captures": {
                 "1": { "name": "storage.type.list.ink" },
                 "2": { "name": "variable.other.list.ink" },
@@ -200,7 +200,7 @@
 
         "const_declaration": {
             "name": "meta.declaration.const.ink",
-            "match": "^\\s*(CONST)\\s+([a-zA-Z_][\\w]*)\\s*(=)\\s*(.+)$",
+            "match": "^\\s*(CONST)\\s+([\\w\\x{3040}-\\x{30FF}\\x{4E00}-\\x{9FFF}\\x{AC00}-\\x{D7AF}]+)\\s*(=)\\s*(.+)$",
             "captures": {
                 "1": { "name": "storage.type.const.ink" },
                 "2": { "name": "variable.other.constant.ink" },
@@ -211,7 +211,7 @@
 
         "temp_declaration": {
             "name": "meta.declaration.temp.ink",
-            "match": "^\\s*(temp)\\s+([a-zA-Z_][\\w]*)\\s*(=)\\s*(.+)$",
+            "match": "^\\s*(temp)\\s+([\\w\\x{3040}-\\x{30FF}\\x{4E00}-\\x{9FFF}\\x{AC00}-\\x{D7AF}]+)\\s*(=)\\s*(.+)$",
             "captures": {
                 "1": { "name": "storage.type.temp.ink" },
                 "2": { "name": "variable.other.temp.ink" },
@@ -328,7 +328,7 @@
 
         "list_item_reference": {
             "name": "constant.other.list-item.ink",
-            "match": "\\b([a-zA-Z_][\\w]*)\\.([a-zA-Z_][\\w]*)\\b",
+            "match": "\\b([\\w\\x{3040}-\\x{30FF}\\x{4E00}-\\x{9FFF}\\x{AC00}-\\x{D7AF}]+)\\.([\\w\\x{3040}-\\x{30FF}\\x{4E00}-\\x{9FFF}\\x{AC00}-\\x{D7AF}]+)\\b",
             "captures": {
                 "1": { "name": "variable.other.list.ink" },
                 "2": { "name": "variable.other.list-item.ink" }
@@ -370,7 +370,7 @@
 
         "function_call": {
             "name": "meta.function-call.ink",
-            "match": "\\b([a-zA-Z_][\\w]*)\\s*(?=\\()",
+            "match": "\\b([\\w\\x{3040}-\\x{30FF}\\x{4E00}-\\x{9FFF}\\x{AC00}-\\x{D7AF}]+)\\s*(?=\\()",
             "captures": {
                 "1": { "name": "entity.name.function.call.ink" }
             }
@@ -378,7 +378,7 @@
 
         "variable_ref": {
             "name": "variable.other.ink",
-            "match": "\\b([a-zA-Z_][\\w]*)\\b"
+            "match": "\\b([\\w\\x{3040}-\\x{30FF}\\x{4E00}-\\x{9FFF}\\x{AC00}-\\x{D7AF}]+)\\b"
         }
     }
 }

@@ -2,7 +2,7 @@
     "name": "inkup",
     "displayName": "Inkup: Ink language support",
     "description": "Language support for inkle's Ink scripting language: syntax highlighting, compiler diagnostics, go to definition, find references, formatting and image previews.",
-    "version": "0.3.0",
+    "version": "0.3.5",
     "publisher": "water2077",
     "icon": "icon-small.jpg",
     "engines": {

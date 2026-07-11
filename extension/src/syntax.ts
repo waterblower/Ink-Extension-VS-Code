@@ -2,12 +2,26 @@
 // formatting. Ink is line-oriented, so a handful of anchored regexes cover
 // every structural construct we care about.
 
+/**
+ * Ink identifiers are broader than most languages: inkjs accepts names
+ * that start with digits (`2nd_floor_entry`) and CJK characters, so every
+ * name pattern must build on this source string, never on `[a-zA-Z_]\w*`.
+ */
+export const ID_SRC =
+    "[0-9A-Za-z_\\u3040-\\u30FF\\u4E00-\\u9FFF\\uAC00-\\uD7AF]+";
+
+/** An identifier, or a dot-path of identifiers (`knot.stitch`). */
+export const ID_PATH_SRC = `${ID_SRC}(?:\\.${ID_SRC})*`;
+
 /** `=== name ===`, `== name`, `=== function name(a, b) ===` */
-export const KNOT_RE =
-    /^(={2,})\s*(function\s+)?([a-zA-Z_]\w*)\s*(\([^)]*\))?\s*(={2,})?\s*$/;
+export const KNOT_RE = new RegExp(
+    `^(={2,})\\s*(function\\s+)?(${ID_SRC})\\s*(\\([^)]*\\))?\\s*(={2,})?\\s*$`,
+);
 
 /** `= name` or `= name(a, b)` — exactly one leading `=` */
-export const STITCH_RE = /^=(?!=)\s*([a-zA-Z_]\w*)\s*(\([^)]*\))?\s*$/;
+export const STITCH_RE = new RegExp(
+    `^=(?!=)\\s*(${ID_SRC})\\s*(\\([^)]*\\))?\\s*$`,
+);
 
 export const INCLUDE_RE = /^INCLUDE\s+(.+)$/;
 
@@ -39,7 +53,7 @@ export type DivertTarget = {
     col: number;
 };
 
-const DIVERT_RE = /->[ \t]*([a-zA-Z_][\w.]*)/g;
+const DIVERT_RE = new RegExp(`->[ \\t]*(${ID_PATH_SRC})`, "g");
 
 /** All divert targets on a line, excluding the built-in END / DONE. */
 export const parseDivertTargets = (line: string): DivertTarget[] => {

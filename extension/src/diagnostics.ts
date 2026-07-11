@@ -4,7 +4,14 @@
 
 import * as vscode from "vscode";
 import { compileInk, InkIssue } from "./compile.ts";
-import { collectInkFiles, findRootInkFile, readInkFile } from "./project.ts";
+import {
+    collectInkFiles,
+    findRootInkFile,
+    readInkFile,
+    readLines,
+    workspaceInkFiles,
+} from "./project.ts";
+import { parseDeclaration } from "./syntax.ts";
 
 const DEBOUNCE_MS = 400;
 
@@ -17,6 +24,39 @@ const toSeverity = (issue: InkIssue): vscode.DiagnosticSeverity => {
         case "info":
             return vscode.DiagnosticSeverity.Information;
     }
+};
+
+const DIVERT_NOT_FOUND_RE = /Divert target not found: '-> ([^']+)'/;
+
+/** First file among `files` declaring the knot/stitch `name`, if any. */
+const fileDeclaring = (name: string, files: string[]): string | null => {
+    for (const file of files) {
+        for (const line of readLines(file)) {
+            if (parseDeclaration(line.trim())?.name === name) return file;
+        }
+    }
+    return null;
+};
+
+/**
+ * While editing, the story graph is allowed to be incomplete: as long as a
+ * divert target's name is declared as a knot or stitch *anywhere* in the
+ * workspace, the divert is navigable and should not be flagged. This also
+ * absorbs cascading "not found" errors when one broken file makes the
+ * compiler lose knots that plainly exist. Names declared nowhere remain
+ * errors — those are real typos.
+ */
+const isEditableDivert = (issue: InkIssue, rootPath: string): boolean => {
+    if (issue.severity !== "error") return false;
+    const m = issue.message.match(DIVERT_NOT_FOUND_RE);
+    if (!m) return false;
+
+    const target = m[1];
+    const names = target.includes(".")
+        ? [target.split(".")[0], target.split(".").pop() as string]
+        : [target];
+    const files = workspaceInkFiles(rootPath);
+    return names.some((name) => fileDeclaring(name, files) !== null);
 };
 
 export class InkDiagnostics {
@@ -36,6 +76,9 @@ export class InkDiagnostics {
             }),
             vscode.workspace.onDidSaveTextDocument((doc) => {
                 this.schedule(doc);
+            }),
+            vscode.window.onDidChangeActiveTextEditor((editor) => {
+                if (editor) this.schedule(editor.document);
             }),
         );
 
@@ -68,6 +111,7 @@ export class InkDiagnostics {
             ]);
         } else {
             for (const issue of issues) {
+                if (isEditableDivert(issue, rootPath)) continue;
                 const line = Math.max(0, issue.line);
                 const diagnostic = new vscode.Diagnostic(
                     new vscode.Range(line, 0, line, Number.MAX_SAFE_INTEGER),

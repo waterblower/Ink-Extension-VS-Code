@@ -4,9 +4,9 @@
 import * as path from "node:path";
 import * as vscode from "vscode";
 import { projectFiles, readLines } from "./project.ts";
-import { KNOT_RE, STITCH_RE } from "./syntax.ts";
+import { ID_SRC, KNOT_RE, STITCH_RE } from "./syntax.ts";
 
-const DIVERT_PREFIX_RE = /->\s*[a-zA-Z0-9_.]*$/;
+const DIVERT_PREFIX_RE = new RegExp(`->\\s*(?:${ID_SRC}|\\.)*$`);
 
 export const completionProvider: vscode.CompletionItemProvider = {
     provideCompletionItems(document, position) {

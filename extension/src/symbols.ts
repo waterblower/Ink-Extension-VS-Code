@@ -1,9 +1,9 @@
 // Outline view (knots, stitches, variables) and folding ranges.
 
 import * as vscode from "vscode";
-import { KNOT_RE, STITCH_RE } from "./syntax.ts";
+import { ID_SRC, KNOT_RE, STITCH_RE } from "./syntax.ts";
 
-const VAR_RE = /^(?:VAR|CONST|LIST)\s+([a-zA-Z_]\w*)/;
+const VAR_RE = new RegExp(`^(?:VAR|CONST|LIST)\\s+(${ID_SRC})`);
 
 export const symbolProvider: vscode.DocumentSymbolProvider = {
     provideDocumentSymbols(document) {
