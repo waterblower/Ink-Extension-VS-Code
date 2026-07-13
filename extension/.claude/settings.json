@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find /Users/mac/Documents/GitHub/her-maidjesty -name \"*.ink\" -not -path \"*/node_modules/*\" | head -30; echo ---; grep -rl \"INCLUDE\" /Users/mac/Documents/GitHub/her-maidjesty --include=\"*.ink\" -s | head; echo ---; grep -rn \"2nd_floor_maid_common_room_entry\" /Users/mac/Documents/GitHub/her-maidjesty --include=\"*.ink\" -s | head)",
+      "Read(//Users/mac/Documents/GitHub/her-maidjesty/**)",
+      "Read(//Users/mac/Documents/GitHub/her-maidjesty/scenes/**)",
+      "Read(//Users/mac/Documents/GitHub/her-maidjesty/scenes/2nd_floor_maid_bathroom/**)",
+      "Bash(find /Users/mac/Documents/GitHub/her-maidjesty/game/libs/ink -name \"*.d.ts\" -path \"*inkjs*\" 2>/dev/null | head -3; find ~/Library/Caches/deno -type d -name \"inkjs*\" 2>/dev/null | head -3; find /Users/mac/Documents/GitHub/her-maidjesty -type d -name \"inkjs\" -maxdepth 6 2>/dev/null | head)",
+      "Read(//Users/mac/Documents/GitHub/her-maidjesty/game/libs/ink/**)",
+      "Read(//Users/mac/Library/Caches/deno/**)",
+      "Bash(grep -rn \"filenamesAlreadyIncluded\\\\|already included\\\\|_filenamesAlreadyIncluded\" /Users/mac/Documents/GitHub/her-maidjesty/game/node_modules/.deno/inkjs@2.4.0/node_modules/inkjs/compiler -r --include=\"*.js\" | head)",
+      "Read(//Users/mac/Documents/GitHub/her-maidjesty/game/node_modules/.deno/inkjs@2.4.0/node_modules/inkjs/compiler/**)",
+      "Bash(cd /Users/mac/Documents/GitHub/her-maidjesty/game/node_modules/.deno/inkjs@2.4.0/node_modules/inkjs && ls compiler 2>/dev/null; ls; grep -rn \"IncludedFile\\\\|Include\" ink.d.ts 2>/dev/null | head)",
+      "Read(//Users/mac/Documents/GitHub/her-maidjesty/game/node_modules/.deno/inkjs@2.4.0/node_modules/inkjs/**)",
+      "Bash(grep -rn \"parsedFiles\\\\|AlreadyIncluded\\\\|alreadyIncluded\" /Users/mac/Documents/GitHub/her-maidjesty/game/node_modules/.deno/inkjs@2.4.0/node_modules/inkjs/compiler/Parser/InkParser.js | head)",
+      "Read(//Users/mac/Documents/GitHub/her-maidjesty/game/node_modules/.deno/inkjs@2.4.0/node_modules/inkjs/compiler/Parser/**)",
+      "Bash(grep -n \"Include\" /Users/mac/Documents/GitHub/her-maidjesty/game/node_modules/.deno/inkjs@2.4.0/node_modules/inkjs/compiler/Parser/InkParser.js | head -20)"
+    ]
+  }
+}
